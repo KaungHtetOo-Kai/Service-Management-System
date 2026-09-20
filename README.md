@@ -1,11 +1,10 @@
 # Service Management System
 
-A Flask-based web application for managing service-center operations, employee records, inventory, purchase orders, and repair tickets. This README is based on a review of the supplied source-code archive; update any workflow details as the application changes.
-
+A Flask-based web application for managing service-center operations, employee records, inventory, purchase orders, and repair tickets. 
 > **Status:** In development  
-> **Version:** [Add version]  
-> **Maintainer:** [Add name/team]  
-> **Last updated:** [YYYY-MM-DD]
+> **Version:** [V1.0]  
+> **Maintainer:** [Kaung Htet Oo -Kai]  
+> **Last updated:** [2026-09-20]
 
 ## Contents
 
