@@ -1,0 +1,138 @@
+/* Size for brand */
+nav .navbar-brand
+{
+    font-size: medium;
+}
+
+.image-wrapper {
+    text-align: center; /* Automatically centers the inline text inside */
+    margin: 0;          /* Resets default browser margins if needed */
+}
+
+.image-wrapper img {
+    width: 50px;
+    height: auto;
+    display: block;    /* Prevents trailing inline spacing and stacks elements */
+    margin: 0 auto;    /* Keeps the image perfectly centered */
+}
+
+.form-group-container {
+  display: flex;
+  justify-content: center; /* Horizontally centers the element */
+  align-items: center;     /* Vertically centers the element */
+}
+
+.combined-pattern-screen {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  background-color: #ffffff;
+  background-image: radial-gradient(125% 125% at 50% 10%, #ffffff 40%, #475569 100%);
+  background-size: 100% 100%;
+}
+
+.form-label{
+    font-size: 14px;
+}
+
+.btn-borderless{
+    --bs-btn-border-color : none;
+}
+
+.disabled-link {
+  pointer-events: none;  /* Blocks clicks and navigation */
+  cursor: default;        /* Prevents the hand/pointer icon */
+  opacity: 0.6;           /* Visually dampens the element */
+  text-decoration: none;  /* Removes underline*/
+}
+
+.input-error {
+  border: 2px solid red;
+}
+
+.search-container {
+  position: relative;
+  width: 100%;
+  max-width: 170px;
+  height: 100%;
+  max-height: 30px;
+}
+
+.search-wrapper {
+  display: flex;
+  align-items: center;
+  position: relative;
+  border: 2px solid #475569;
+  border-radius: 50px; /* Pill-shaped search bar */
+  padding: 6px;
+  background-color: #ffffff;
+  transition: all 0.3s ease; /* Smooth interaction transition */
+}
+
+/* Subtle glowing expand effect when user clicks the bar */
+.search-wrapper:focus-within {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+}
+
+.search-input {
+  flex: 1;
+  border: none;
+  outline: none; /* Replaced by wrapper styling */
+  font-size: 12px;
+  color: var(--text-dark);
+}
+
+.clear-btn {
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: #94a3b8;
+  cursor: pointer;
+  display: none; /* Hidden by default; toggled via JS */
+  padding: 0 5px;
+}
+
+.clear-btn:hover {
+  color: var(--text-dark);
+}
+
+/* Dropdown list styling */
+.search-dropdown {
+  position: absolute;
+  top: 120%;
+  left: 0;
+  width: 100%;
+  background: white;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 10px 15px 0px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+  overflow: hidden;
+  max-height: 75px;
+  overflow-y: auto;
+  scrollbar-width: none; 
+}
+
+.hidden { display: none; }
+
+.search-dropdown ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.search-dropdown li {
+  padding: 12px 16px;
+  cursor: pointer;
+  color: var(--text-dark);
+  transition: background 0.2s ease;
+}
+
+.search-dropdown li:hover {
+  background-color: #f1f5f9;
+}
+
+.table-responsive {
+  overflow-x: auto !important;
+}

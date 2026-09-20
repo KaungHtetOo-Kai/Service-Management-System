@@ -1,0 +1,153 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Create Employee
+{% endblock %}
+
+{% block main %}
+    <form id="create_employee_form" method="post" action="{{ url_for('employee_create') }}">
+        <div class="border border-dark-subtle border-3 rounded-3 py-3 mx-auto" style="height: auto; width: 100%; max-width: 550px;">
+            <div class="me-3 ms-3 d-flex">
+                <h2 class="my-auto">Create Employee </h2>
+                <div class="ms-auto my-auto">
+                    <button class="btn btn-primary btn-sm" type="button" name="action" value="excel">Import Excel</button>
+                </div>   
+            </div>
+            <br>
+            <div class="me-5 ms-5 mx-auto">
+                <div class="mb-3">
+                    <label for="staff_id" class="form-label">Staff_id (required)</label>
+                    <input type="text" class="form-control" name="staff_id" autocomplete="off" id="staff_id" placeholder="Staff_id" required>
+                </div>
+                <div class="mb-3">
+                    <label for="password" class="form-label">Password (required)</label>
+                    <input type="password" class="form-control" name="password" autocomplete="off" id="password" placeholder="Password" required>
+                </div>
+                <div class="mb-3">
+                    <label for="name" class="form-label">Name (required)</label>
+                    <input type="text" class="form-control" name="name" autocomplete="off" id="name" placeholder="Name" required>
+                </div>
+                <div class="mb-3">
+                    <label for="position" class="form-label">Position (required)</label>
+                    <select class="form-select" id="position" name="position" required>
+                        <option value="" selected disabled>Select position</option>
+                        <option value="1">Manager</option>
+                        <option value="2">Engineer</option>
+                        <option value="3">Receptionist</option>
+                        <option value="4">Store Executive</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="department" class="form-label">Department (required)</label>
+                    <select class="form-select" id="department" name="department" required>
+                        <option value="" selected disabled>Select department</option>
+                        <option value="1">Management Department</option>
+                        <option value="2">Technical Department</option>
+                        <option value="3">Finance Department</option>
+                        <option value="4">Store Department</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="center_id" class="form-label">Service Center (required)</label>
+                    <select class="form-select" id="center_id" name="center_id" required>
+                        <option value="" selected disabled>Select Service Center</option>
+                        {% for center in centers %}
+                        <option value="{{center.center_id}}">{{center.name}} ({{center.center_id}})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="NRC" class="form-label">NRC</label>
+                    <input type="text" class="form-control" name="NRC" autocomplete="off" id="NRC" placeholder="NRC">
+                </div>
+                <div class="mb-3">
+                    <label for="father_name" class="form-label">Father's Name</label>
+                    <input type="text" class="form-control" name="father_name" autocomplete="off" id="father_name" placeholder="Father's Name">
+                </div>
+                <div class="mb-3">
+                    <label for="address" class="form-label">Address</label>
+                    <input type="text" class="form-control" name="address" autocomplete="off" id="address" placeholder="Address">
+                </div>
+                <div class="mb-3">
+                    <label for="phone" class="form-label">Phone Number</label>
+                    <input type="text" class="form-control" name="phone" autocomplete="off" id="phone" placeholder="Phone Number">
+                </div>
+                <div class="text-center py-3">
+                    <button class="btn btn-primary btn" type="submit" name="action" value="employee_create">Create Employee</button>
+                </div> 
+            </div>
+        </div>
+    </form>
+    
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let currentActionValue = null;
+
+    const form = document.getElementById("create_employee_form");
+
+    // Catch the value of the clicked submit button before the form event fires
+    if (form) {
+        form.querySelectorAll('button[type="submit"]').forEach(button => {
+            button.addEventListener("click", function() {
+                currentActionValue = this.value; 
+            });
+        });
+
+        // Process form submission asynchronously using the Global Pipeline Fetch function
+        form.addEventListener("submit", function (event) {
+            event.preventDefault();
+            
+            const formData = new FormData(this);
+            
+            // Inject the button action into the data payload
+            if (currentActionValue) {
+                formData.append("action", currentActionValue);
+            } else {
+                // Fallback default value if they just hit enter on an input box
+                formData.append("action", "employee_create");
+            }
+
+            // Prevent the [object RadioNodeList] 404 Routing Error ---
+            // Safely extracts the string path directly out of the HTML attribute definitions
+            let targetUrl = "/employee_create"; // Secure fallback default string
+            
+            if (this.action && typeof this.action === 'string' && !this.action.includes('[object')) {
+                targetUrl = this.action;
+            } else if (form.getAttribute('action')) {
+                targetUrl = form.getAttribute('action'); 
+            }
+
+            // Define options configuration matching global gateway requirements
+            const requestOptions = {
+                method: "POST",
+                body: formData
+            };
+
+            // --- PIPELINE REFACTOR CORE INTEGRATION ---
+            // Route submission parameters through unique global fetch engine
+            sendServerRequest(
+                targetUrl, 
+                requestOptions, 
+                // Success Callback Route
+                function(data) {
+                    // Success notification action
+                    showModal("success", data.message);
+                    
+                    form.reset(); // Clear the active layout form input blocks cleanly
+
+                    if (data.redirect) {
+                        window.location.href = data.redirect;
+                    }
+                },
+                // Error Callback Route (Handles explicit database validation issues like 400 Bad Requests)
+                function(errData) {
+                    showModal(errData.status || "error", errData.message || "An error occurred.");
+                }
+            );
+        });
+    }
+
+</script>
+{% endblock %}

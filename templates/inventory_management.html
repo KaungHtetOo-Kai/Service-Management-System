@@ -1,0 +1,450 @@
+{% extends "layout.html" %} 
+
+{% block title %} 
+    Inventory Management
+{% endblock %} 
+
+{% block main %}
+
+    <h2>Inventory Management</h2>
+    <br>
+    <form id="create_inventory_form" method="POST" action="/create_inventory">
+        <div class="border border-dark-subtle border-3 rounded-3 py-3">
+            <div class="me-3 ms-3 d-flex gap-3">
+                <h5 class="my-auto">Create Inventory</h5>
+                <div class="ms-auto">
+                    <button class="btn btn-secondary btn-sm" id="removeAllBtn"  type="button" onclick="executeRemoveAll()" style="display: none;">Remove All</button>
+                    <button class="btn btn-primary btn-sm" id="importExcelBtn" type="button">Import Excel</button>
+                </div>   
+            </div>
+            <br>
+            <div class="row row-cols-2 row-cols-lg-6 gy-3 gx-3 me-3 ms-3 align-items-center justify-content-center">
+                <div class="col-auto">
+                    <input id="create_code" class="form-control" name="create_code" autocomplete="off" placeholder="Code" type="text" >
+                </div>
+                <div class="col-auto">
+                    <input id="create_name" class="form-control" name="create_name" autocomplete="off" placeholder="Name" type="text" >
+                </div>
+                <div class="col-auto">
+                    <input id="create_model" class="form-control" name="create_model" autocomplete="off" placeholder="Phone Model" type="text">
+                </div>
+                <div class="col-auto">
+                    <input id="create_price" class="form-control" name="create_price" autocomplete="off" placeholder="Price" type="number" >
+                </div>
+                <div class="col-auto">
+                    <button class="btn btn-primary w-100" id="addTolistBtn" type="button" onclick="executeAddToList()">Add to List</button>
+                </div>
+            </div>
+            <br>
+            <div class="table-responsive mx-3">
+                <table id="createInventorytable" class="table table-bordered table-striped">
+                    <thead class="thead-light">
+                        <tr>
+                            <th style="width: 3%" >No</th>
+                            <th>Code</th>
+                            <th>Name</th>
+                            <th>Model</th>
+                            <th>Price</th>
+                            <th style="width: 5%" class="text-center">Action</th>
+                        </tr>
+                    </thead> 
+                    <tbody id="createTableBody">    
+                        <!-- JavaScript will write td items here dynamically -->      
+                    </tbody>               
+                </table>   
+            </div>
+            <div class="text-center py-3">
+                <button class="btn btn-primary disabled" id="createInventorySubmitBtn" type="submit" name="action" value="create_inventory">Create Inventory</button>
+            </div>      
+        </div>
+    </form>
+    <br>
+    <!-- <form id="edit_inventory_form" method="POST" action="/edit_inventory">
+        <div class="border border-dark-subtle border-3 rounded-3 py-3">
+            <div class="me-3 ms-3 d-flex gap-3">
+                <h5 class="my-auto">Edit Inventory</h5>
+                <div class="ms-auto">
+                    
+                    <button class="btn btn-primary btn-sm" id="importExcelBtn" type="button">Import Excel</button>
+                </div>   
+            </div>
+            <br>
+            <div class="row row-cols-2 row-cols-lg-6 gy-3 gx-3 me-3 ms-3 align-items-center justify-content-center">
+                <div class="col-auto">
+                    <input id="edit_code" class="form-control" name="edit_code" autocomplete="off" placeholder="Code" type="text" >
+                </div>
+                <div class="col-auto">
+                    <input id="edit_name" class="form-control" name="edit_name" autocomplete="off" placeholder="Name" type="text" >
+                </div>
+                <div class="col-auto">
+                    <input id="edit_model" class="form-control" name="edit_model" autocomplete="off" placeholder="Phone Model" type="text">
+                </div>
+                <div class="col-auto">
+                    <input id="edit_price" class="form-control" name="edit_price" autocomplete="off" placeholder="Price" type="number" >
+                </div>
+                <div class="col-auto">
+                    <button class="btn btn-primary w-100" id="searchInventoryBtn" type="button" >Search</button>
+                </div>
+            </div>
+            <br>
+            <div class="table-responsive mx-3">
+                <table id="createInventorytable" class="table table-bordered table-striped">
+                    <thead class="thead-light">
+                        <tr>
+                            <th style="width: 3%" >No</th>
+                            <th>Code</th>
+                            <th>Name</th>
+                            <th>Model</th>
+                            <th>Price</th>
+                            <th style="width: 5%" class="text-center">Action</th>
+                        </tr>
+                    </thead> 
+                    <tbody id="createTableBody">    
+                        
+                    </tbody>               
+                </table>   
+            </div>      
+        </div>
+    </form> --> 
+    
+
+{% endblock %}
+{% block scripts %}
+
+<script>
+
+    /**
+     * 1. Monitors all 6 filtering fields to toggle the addtolist Button's disabled state.
+     * Prevents empty submissions that trigger backend 404/500 routing anomalies.
+     */
+    function checkSearchFieldsValidation() {
+        const addTolistBtn = document.getElementById('addTolistBtn');
+        if (!addTolistBtn) return;
+
+        // 1. Fetch values from all text inputs elements safely
+        const codeVal  = document.getElementById('create_code')    ? document.getElementById('create_code').value.trim()  : '';
+        const nameVal  = document.getElementById('create_name')    ? document.getElementById('create_name').value.trim()  : '';
+        const modelVal = document.getElementById('create_model')   ? document.getElementById('create_model').value.trim() : '';
+        const priceVal = document.getElementById('create_price')   ? document.getElementById('create_price').value.trim() : '';
+
+        // 2. Determine if every single filtering input element is completely blank
+        const isAllFieldsEmpty = (!codeVal && !nameVal && !modelVal && !priceVal);
+
+        // 3. Dynamically manage HTML properties and core structural classes
+        if (isAllFieldsEmpty) {
+            addTolistBtn.disabled = true;                // Hard blocks all browser click interaction pathways
+            addTolistBtn.classList.add('disabled');      // Formally injects Bootstrap's muted disabled opacity look
+        } else {
+            addTolistBtn.disabled = false;               // Activates the node engine element properties
+            addTolistBtn.classList.remove('disabled');   // Fully restores interactive colors
+        }
+    }
+
+    /**
+     * DYNAMIC CONTROLLER UTILITY
+     * Manages the visibility of the "Remove All" button and re-indexes the table 
+     * rows from 1 upwards whenever an item is added or deleted.
+     */
+    function updateTableStateAndIndices() {
+        const tbody = document.getElementById('createTableBody');
+        const removeAllBtn = document.getElementById('removeAllBtn');
+        const importExcelBtn = document.getElementById('importExcelBtn')
+        if (!tbody || !removeAllBtn) return;
+
+        // 1. Gather all current active table row nodes
+        const rows = tbody.querySelectorAll('tr');
+
+        // 2. TOGGLE BUTTON VISIBILITY: Show the "Remove All" button only if rows exist
+        if (rows.length > 0) {
+            removeAllBtn.style.display = 'inline-block';
+            importExcelBtn.classList.add('disabled');
+            importExcelBtn.style.display = 'none';
+        } else {
+            removeAllBtn.style.display = 'none';
+            importExcelBtn.classList.remove('disabled')
+            importExcelBtn.style.display = 'inline-block';
+        }
+
+        // 3. AUTOMATIC SEQUENTIAL RE-INDEXING (The 'No' Column Repair Engine)
+        // Runs through all rows and fixes the index numbering so deleting item #2 
+        // forces item #3 to instantly become item #2, keeping your counts pristine!
+        rows.forEach((row, index) => {
+            const noCell = row.querySelector('td:first-child');
+            if (noCell) {
+                noCell.innerText = index + 1;
+            }
+        });
+    }
+
+    /**
+     * 1. Add item values to the table array
+     */
+    function executeAddToList() {
+        const codeInput  = document.getElementById('create_code');
+        const nameInput  = document.getElementById('create_name');
+        const modelInput = document.getElementById('create_model');
+        const priceInput = document.getElementById('create_price');
+        const tbody      = document.getElementById('createTableBody');
+        const submitBtn  = document.getElementById('createInventorySubmitBtn');
+
+        if (!codeInput || !nameInput || !priceInput || !tbody) return;
+
+        const codeVal  = codeInput.value.trim();
+        const nameVal  = nameInput.value.trim();
+        const modelVal = modelInput.value.trim() || 'N/A';
+        const priceVal = priceInput.value.trim();
+
+        // Field verification guards
+        if (codeVal.length === 0 || nameVal.length === 0 || priceVal.length === 0) {
+            if (typeof showModal === "function") {
+                showModal("error", "Validation Error: Code, Name, and Price are mandatory properties.");
+            } else {
+                alert("Please populate all required fields.");
+            }
+            return;
+        }
+
+        const currentRowCount = tbody.querySelectorAll('tr').length;
+        const nextRowIndex = currentRowCount + 1;
+
+        const newRow = document.createElement('tr');
+        newRow.className = "align-middle";
+
+        // Injected a functional cross (X) deletion icon inside the final cell
+        newRow.innerHTML = `
+            <td class="text-center fw-medium">${nextRowIndex}</td>
+            <td>${codeVal}</td>
+            <td>${nameVal}</td>
+            <td>${modelVal}</td>
+            <td class="text-end fw-semibold">MMK ${parseFloat(priceVal).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+            <td class="text-center">
+                <!-- Clicking the X triggers the separate delete row handler dynamically -->
+                <button type="button" class="btn btn-sm btn-outline-danger border-0 py-0 px-2 fw-bold" onclick="removeSingleItem(this)" title="Remove Item">
+                    &times;
+                </button>
+            </td>
+        `;
+
+        tbody.appendChild(newRow);
+
+        // Form inputs cleanup reset routines
+        codeInput.value = '';
+        nameInput.value = '';
+        modelInput.value = '';
+        priceInput.value = '';
+        codeInput.focus();
+        submitBtn.classList.remove('disabled');
+
+        // Trigger state manager to show the "Remove All" button and verify numbering
+        updateTableStateAndIndices();
+    }
+
+    /**
+     * 2. SEPARATE ACTION: Deletes a single item row from your view grid
+     * @param {HTMLElement} buttonElement - The specific cross button that was clicked
+     */
+    function removeSingleItem(buttonElement) {
+        if (!buttonElement) return;
+        
+        // Traverses up the DOM layout hierarchy to locate the parent <tr> containing this button
+        const targetRow = buttonElement.closest('tr');
+        
+        if (targetRow) {
+            // Drop the targeted element row out of the DOM tree structure
+            targetRow.remove();
+            
+            // Re-calculate page sequential indexes and update the "Remove All" button layout states
+            updateTableStateAndIndices();
+        }
+    }
+
+    /**
+     * 3. SEPARATE ACTION: Wipes all element records from the table body cleanly
+     */
+    function executeRemoveAll() {
+        const tbody = document.getElementById('createTableBody');
+        if (!tbody) return;
+        const searchBtn = document.getElementById('addTolistBtn');
+        const submitBtn = document.getElementById('createInventorySubmitBtn');
+        const nocreateItemTableRow = document.getElementById('nocreateItemTableRow');
+
+        // Use a clean modal warning window before executing a complete table flush
+        if (typeof showModal === "function") {
+            showModal(
+                "warning", 
+                "Are you completely sure you want to clear all items currently listed in this staging table?", 
+                null, 
+                function() {
+                    // If the user clicks OK on the confirmation, empty the layout body container
+                    tbody.innerHTML = '';
+
+                    // Recalculate states to cleanly hide the "Remove All" button
+                    updateTableStateAndIndices();
+                    searchBtn.disabled = true;                // Hard blocks all browser click interaction pathways
+                    searchBtn.classList.add('disabled');
+                    submitBtn.disabled = true;
+                    submitBtn.classList.add('disabled'); 
+                }
+            );
+        } else {
+            // Fallback native dialog channel if custom overlays are missing
+            if (confirm("Clear all items out of the staging list?")) {
+                tbody.innerHTML = '';
+                updateTableStateAndIndices();
+                searchBtn.disabled = true;                // Hard blocks all browser click interaction pathways
+                searchBtn.classList.add('disabled'); 
+            }
+        }
+    }
+
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Define both active form types operating on the workspace page
+        const inputIdsList = ['create_code', 'create_name', 'create_model', 'create_price'];
+        inputIdsList.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('input', checkSearchFieldsValidation);
+                el.addEventListener('change', checkSearchFieldsValidation);
+            }
+        });
+        checkSearchFieldsValidation();
+
+        const creationForm = document.getElementById("create_inventory_form");
+
+        if (creationForm) {
+            creationForm.addEventListener("submit", function (event) {
+                // 1. Intercept native browser POST request reloads
+                event.preventDefault();
+
+                const tbody = document.getElementById('createTableBody');
+                if (!tbody) return;
+
+                const rows = tbody.querySelectorAll('tr');
+
+                // --- SAFETY CHECK A: Ensure the staging table isn't completely empty ---
+                if (rows.length === 0) {
+                    if (typeof showModal === "function") {
+                        showModal("error", "Submission Blocked: Your staging table is empty. Please add at least one inventory item before submitting.");
+                    } else {
+                        alert("Your table is empty.");
+                    }
+                    return;
+                }
+
+                // Data storage containers for our payload and duplicate tracking loops
+                const inventoryItemsPayload = [];
+                const codeTrackerMap = {}; // Tracks { codeValue: [rowNumber1, rowNumber2] }
+                const duplicateRowNumbers = new Set(); // Stores exact row counts where collisions happen
+
+                // =========================================================================
+                // 2. PARSE AND EXTRACT ROW-BY-ROW MATRIX VALUES FROM HTML COMPONENT
+                // =========================================================================
+                rows.forEach((row, index) => {
+                    const currentNo = index + 1; // Real UI sequential column index number
+                    
+                    // Read individual cell parameters cleanly out of the DOM table tree layout
+                    const cells = row.querySelectorAll('td');
+                    if (cells.length < 5) return; // Skip broken rows safely
+
+                    const itemCode  = cells[1].innerText.trim();
+                    const itemName  = cells[2].innerText.trim();
+                    const itemModel = cells[3].innerText.trim();
+                    
+                    // Extract raw unformatted numeric float numbers out of the currency cell string
+                    // Removes 'MMK' and ',' strings completely before compilation
+                    const rawPriceText = cells[4].innerText.replace('MMK', '').replace(/,/g, '').trim();
+                    const itemPrice = parseFloat(rawPriceText) || 0.00;
+
+                    // --- DUPLICATE SECURITY EVALUATION ---
+                    if (codeTrackerMap[itemCode]) {
+                        // Duplicate found! Stash the historical initial row and the current row index counts
+                        codeTrackerMap[itemCode].forEach(oldNo => duplicateRowNumbers.add(oldNo));
+                        duplicateRowNumbers.add(currentNo);
+                    } else {
+                        codeTrackerMap[itemCode] = [];
+                    }
+                    codeTrackerMap[itemCode].push(currentNo);
+
+                    // Package the row into a standardized dataset transfer dictionary object
+                    inventoryItemsPayload.push({
+                        "code": itemCode,
+                        "name": itemName,
+                        "model": itemModel,
+                        "price": itemPrice
+                    });
+                });
+
+                // =========================================================================
+                // 3. FIREWALL CHECK B: HALT OPERATIONS IF CODES COLLIDE
+                // =========================================================================
+                if (duplicateRowNumbers.size > 0) {
+                    // Convert row numbers set to a clean sorted string array text layout: "2, 5"
+                    const sortedDuplicates = Array.from(duplicateRowNumbers).sort((a, b) => a - b).join(', ');
+                    
+                    const duplicateWarningMessage = `There were duplicate code values at these columns: column Numbers: ${sortedDuplicates}`;
+                    
+                    if (typeof showModal === "function") {
+                        showModal("error", duplicateWarningMessage);
+                    } else {
+                        alert(duplicateWarningMessage);
+                    }
+                    return; // Hard locks execution before network transfer payload can leak out
+                }
+
+                // =========================================================================
+                // 4. DISPATCH BULK PAYLOAD PACKAGE OVER UNIVERSAL GATEWAY
+                // =========================================================================
+                // Convert our structured inventory objects array matrix into a unified JSON string payload wrapper
+                const requestOptions = {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        "action": "create_inventory",
+                        "items": inventoryItemsPayload
+                    })
+                };
+
+                // Pull destination endpoint string link from form action attribute markup safely
+                let targetRoutingUrl = "/create_inventory"; // Secure fallback default string blueprint
+
+                if (creationForm.getAttribute('action')) {
+                    targetRoutingUrl = creationForm.getAttribute('action'); 
+                } else if (creationForm.action && typeof creationForm.action === 'string' && !creationForm.action.includes('[object')) {
+                    targetRoutingUrl = creationForm.action;
+                }
+
+                // Trigger transmission using your verified type-safe global gateway script function
+                sendServerRequest(
+                    targetRoutingUrl,
+                    requestOptions,
+                    // Success Callback Handler
+                    function (data) {
+                        if (data.status === "success") {
+                            if (typeof showModal === "function") {
+                            showModal("success", data.message, null, function () {
+                                tbody.innerHTML = ''; // Clear rows completely upon execution success
+                                if (typeof updateTableStateAndIndices === "function") updateTableStateAndIndices();
+                                if (data.redirect) window.location.href = data.redirect;
+                                });
+                            }
+                        }
+                        if (data.status === "error") {
+                            if (typeof showModal === "function") {
+                            showModal(data.status, data.message, null, function () {
+                                if (typeof updateTableStateAndIndices === "function") updateTableStateAndIndices();
+                                if (data.redirect) window.location.href = data.redirect;
+                                });
+                            }
+                        }
+                        
+                    }
+                );
+            });
+        }
+    });
+</script>
+
+{% endblock %}

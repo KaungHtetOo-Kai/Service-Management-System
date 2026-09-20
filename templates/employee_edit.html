@@ -1,0 +1,580 @@
+{% extends "layout.html" %} 
+
+{% block title %} 
+    Edit Employee 
+{% endblock %} 
+
+{% block main %}
+    <form id="edit_employee_form" method="post" action="{{ url_for('employee_edit') }}">
+        <div class="border border-dark-subtle border-3 rounded-3 py-3 mx-auto" style="height: auto; width: 100%; max-width: 550px;">
+            <div class="me-3 ms-3 d-flex">
+                <h2 class="my-auto">Edit Employee for {{employee.staff_id}}</h2>   
+            </div>
+            <br>
+            <div class="me-5 ms-5 mx-auto">
+                <div class="mb-3">
+                    <p class="text-danger">*** Instruction: Edit the respective fields to update. Staff_id cannot be edit once it was created. Password changing required old password. If you don't remember the old password, please contact the Web-Admin. For Admin accounts, Position, Department and Service Center fields cannot be changed ***</p>
+                </div>
+                <div class="mb-3">
+                    <label for="name" class="form-label">Name (required)</label>
+                    <input type="text" class="form-control" name="name" autocomplete="off" id="name" placeholder="Name" value="{{employee.name}}" required>
+                    <input type="hidden" name="staff_id" autocomplete="off" id="staff_id" placeholder="Name" value="{{employee.staff_id}}">
+                </div>
+                <div class="mb-3">
+                    <label for="old_password" class="form-label">Old Password (required)</label>
+                    <input type="password" class="form-control" name="old_password" autocomplete="off" id="old_password" placeholder="Old Password">
+                </div>
+                <div class="mb-3">
+                    <label for="new_password" class="form-label">New Password (required)</label>
+                    <input type="password" class="form-control" name="new_password" autocomplete="off" id="new_password" placeholder="New Password" required disabled>
+                </div>
+                <div class="mb-3">
+                    <label for="confirm_password" class="form-label">Confirm Password (required)</label>
+                    <input type="password" class="form-control" name="confirm_password" autocomplete="off" id="confirm_password" placeholder="Confirm Password" required disabled>
+                </div>
+                <div class="mb-3">
+                    <label for="position" class="form-label">Position (required)</label>
+                    <select class="form-select" id="position" name="position" required {% if employee.position|string == '0' %} disabled {% endif %}>
+                        <option value="" disabled>Select position</option>
+                        <option value="0" {% if employee.position|string == '0' %} selected {% endif %}>Admin</option>
+                        <option value="1" {% if employee.position|string == '1' %} selected {% endif %}>Manager</option>
+                        <option value="2" {% if employee.position|string == '2' %} selected {% endif %}>Engineer</option>
+                        <option value="3" {% if employee.position|string == '3' %} selected {% endif %}>Receptionist</option>
+                        <option value="4" {% if employee.position|string == '4' %} selected {% endif %}>Store Executive</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="department" class="form-label">Department (required)</label>
+                    <select class="form-select" id="department" name="department" required {% if employee.position|string == '0' %} disabled {% endif %}>
+                        <option value="" disabled>Select department</option>
+                        <option value="0" {% if employee.department|string == '0' %} selected {% endif %}>Admin</option>
+                        <option value="1" {% if employee.department|string == '1' %} selected {% endif %}>Management Department</option>
+                        <option value="2" {% if employee.department|string == '2' %} selected {% endif %}>Technical Department</option>
+                        <option value="3" {% if employee.department|string == '3' %} selected {% endif %}>Finance Department</option>
+                        <option value="4" {% if employee.department|string == '4' %} selected {% endif %}>Store Department</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="center_id" class="form-label">Service Center (required)</label>
+                    <select class="form-select" id="center_id" name="center_id" required {% if employee.position|string == '0' %} disabled {% endif %}>
+                        <option value="" selected disabled>Select Service Center</option>
+                        {% for center in centers %}
+                        <option value="{{center.center_id}}" {% if employee.center_id|string == center.center_id|string %} selected {% endif %}>{{center.name}} ({{center.center_id}})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="NRC" class="form-label">NRC</label>
+                    <input type="text" class="form-control" name="NRC" autocomplete="off" id="NRC" placeholder="NRC" value="{{employee.NRC}}">
+                </div>
+                <div class="mb-3">
+                    <label for="father_name" class="form-label">Father's Name</label>
+                    <input type="text" class="form-control" name="father_name" autocomplete="off" id="father_name" placeholder="Father's Name" value="{{employee.father_name}}">
+                </div>
+                <div class="mb-3">
+                    <label for="address" class="form-label">Address</label>
+                    <input type="text" class="form-control" name="address" autocomplete="off" id="address" placeholder="Address" value="{{employee.address}}">
+                </div>
+                <div class="mb-3">
+                    <label for="phone" class="form-label">Phone Number</label>
+                    <input type="text" class="form-control" name="phone" autocomplete="off" id="phone" placeholder="Phone Number" value="{{employee.phone}}">
+                </div>
+                <div class="d-flex justify-content-center py-3 gap-3">
+                    <button class="btn btn-primary btn-sm" id="updateEmployeeBtn" type="submit" name="action" value="edit">Update the Employee</button>
+                    <button class="btn btn-primary btn-sm" type="submit" name="action" value="inactive">Mark as Inactive</button>
+                </div> 
+            </div>
+        </div>
+    </form>
+{% endblock %}
+
+{% block scripts %}
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+
+
+        let currentActionValue = null;
+        let passwordCheckTimeout = null; // Holds the live 1-second debounce timer instance
+
+        const form = document.getElementById("edit_employee_form");
+        if (!form) return;
+
+        // 1. Target all dynamic fields and your action button node
+        const nameInput = document.getElementById('name');
+        const staffIdInput = document.getElementById('staff_id'); // Hidden field
+        const oldPasswordInput = document.getElementById('old_password');
+        const newPasswordInput = document.getElementById('new_password');
+        const confirmPasswordInput = document.getElementById('confirm_password');
+        const positionSelect = document.getElementById('position');
+        const departmentSelect = document.getElementById('department');
+        const centerSelect = document.getElementById('center_id');
+        const nrcInput = document.getElementById('NRC');
+        const fatherNameInput = document.getElementById('father_name');
+        const addressInput = document.getElementById('address');
+        const phoneInput = document.getElementById('phone');
+        const updateBtn = document.getElementById('updateEmployeeBtn');
+
+        if (!nameInput || !updateBtn) return; // Guard clause
+
+        // 2. CACHE INITIAL STATE: Save pristine database metrics values on load
+        const ORIGINAL_VALUES_CACHE = {
+            name: nameInput.value.trim(),
+            position: positionSelect ? positionSelect.value : '',
+            department: departmentSelect ? departmentSelect.value : '',
+            centerId: centerSelect ? centerSelect.value : '',
+            nrc: nrcInput ? nrcInput.value.trim() : '',
+            fatherName: fatherNameInput ? fatherNameInput.value.trim() : '',
+            address: addressInput ? addressInput.value.trim() : '',
+            phone: phoneInput ? phoneInput.value.trim() : ''
+        };
+
+        /**
+         * Evaluates live form modification arrays across text boxes, dropdowns, and password workflows.
+         */
+        function validateFormModificationState() {
+            // Fetch current workspace values
+            const currentName = nameInput.value.trim();
+            const currentPosition = positionSelect ? positionSelect.value : '';
+            const currentDepartment = departmentSelect ? departmentSelect.value : '';
+            const currentCenterId = centerSelect ? centerSelect.value : '';
+            const currentNrc = nrcInput ? nrcInput.value.trim() : '';
+            const currentFatherName = fatherNameInput ? fatherNameInput.value.trim() : '';
+            const currentAddress = addressInput ? addressInput.value.trim() : '';
+            const currentPhone = phoneInput ? phoneInput.value.trim() : '';
+
+            // --- CONDITION A: Required Fields Verification ---
+            // Locks button instantly if the mandatory name or active dropdown choices are deleted
+            const isRequiredFieldBlank = (
+                currentName.length === 0 || 
+                currentPosition === "" || 
+                currentDepartment === "" || 
+                currentCenterId === ""
+            );
+
+            // --- CONDITION B: Core Profile Data Change Check ---
+            // Determines if standard metadata values exactly match the original database cache
+            const isProfileDataUnchanged = (
+                currentName === ORIGINAL_VALUES_CACHE.name &&
+                currentPosition === ORIGINAL_VALUES_CACHE.position &&
+                currentDepartment === ORIGINAL_VALUES_CACHE.department &&
+                currentCenterId === ORIGINAL_VALUES_CACHE.centerId &&
+                currentNrc === ORIGINAL_VALUES_CACHE.nrc &&
+                currentFatherName === ORIGINAL_VALUES_CACHE.fatherName &&
+                currentAddress === ORIGINAL_VALUES_CACHE.address &&
+                currentPhone === ORIGINAL_VALUES_CACHE.phone
+            );
+
+            // --- CONDITION C: Dynamic Password Flow Check ---
+            // Tracks if the user has typed an old password, which unlocks the new password fields
+            const isPasswordWorkflowActive = oldPasswordInput && oldPasswordInput.value.length > 0;
+            
+            let isPasswordValid = true;
+            let isPasswordChanged = false;
+
+            if (isPasswordWorkflowActive) {
+                // If they are changing their password, we check if they filled out the fields
+                const newPasswordVal = newPasswordInput ? newPasswordInput.value : '';
+                const confirmPasswordVal = confirmPasswordInput ? confirmPasswordInput.value : '';
+
+                // Check 1: Ensure new fields are not blank and match each other
+                if (newPasswordVal.length === 0 || confirmPasswordVal.length === 0 || newPasswordVal !== confirmPasswordVal) {
+                    isPasswordValid = false;
+                }
+                // Check 2: Mark as changed if new password has values and has no errors
+                if (newPasswordVal.length > 0 && isPasswordValid) {
+                    isPasswordChanged = true;
+                }
+                // Check 3: Fallback safety lockdown if any password field carries an invalid style class
+                if (oldPasswordInput.classList.contains('is-invalid') || newPasswordInput.classList.contains('is-invalid')) {
+                    isPasswordValid = false;
+                }
+            }
+
+            // --- COMBINED MASTER SECURITY RULING ---
+            let shouldDisableButton = false;
+
+            if (isRequiredFieldBlank) {
+                // Always lock if a required field is missing
+                shouldDisableButton = true;
+            } else if (isPasswordWorkflowActive) {
+                // If they touched password fields, unlock ONLY if password data is valid and changed
+                if (!isPasswordValid || (!isPasswordChanged && isProfileDataUnchanged)) {
+                    shouldDisableButton = true;
+                }
+            } else {
+                // Standard flow: Lock if no profile fields were edited
+                if (isProfileDataUnchanged) {
+                    shouldDisableButton = true;
+                }
+            }
+
+            // Apply HTML properties and framework styles based on evaluation
+            if (shouldDisableButton) {
+                updateBtn.disabled = true;
+                updateBtn.classList.add('disabled'); // Bootstrap muted grey class
+            } else {
+                updateBtn.disabled = false;
+                updateBtn.classList.remove('disabled'); // Lights button up to full active color
+            }
+        }
+
+        // 3. BIND INTERACTIVE WORKSPACE STATE LISTENERS
+        // 'input' tracks keystrokes and text changes; 'change' captures dropdown selection switches
+        nameInput.addEventListener('input', validateFormModificationState);
+        if (nrcInput) nrcInput.addEventListener('input', validateFormModificationState);
+        if (fatherNameInput) fatherNameInput.addEventListener('input', validateFormModificationState);
+        if (addressInput) addressInput.addEventListener('input', validateFormModificationState);
+        if (phoneInput) phoneInput.addEventListener('input', validateFormModificationState);
+
+        // Bind listeners to password text fields so validations evaluate live as they type
+        if (oldPasswordInput) oldPasswordInput.addEventListener('input', validateFormModificationState);
+        if (newPasswordInput) newPasswordInput.addEventListener('input', validateFormModificationState);
+        if (confirmPasswordInput) confirmPasswordInput.addEventListener('input', validateFormModificationState);
+
+        // Bind selection event triggers to dropdown selectors
+        if (positionSelect) positionSelect.addEventListener('change', validateFormModificationState);
+        if (departmentSelect) departmentSelect.addEventListener('change', validateFormModificationState);
+        if (centerSelect) centerSelect.addEventListener('change', validateFormModificationState);
+
+        // 4. INITIALIZE ON MOUNT
+        // Automatically blocks the button on load because data starts completely unchanged
+        validateFormModificationState();
+
+        // Expose validator globally in case your separate live password fetch engine needs to re-trigger it
+        window.reEvaluateFormBtnState = validateFormModificationState;
+        
+        // Finds the associated layout labels right above each field container
+        const oldPasswordLabel = oldPasswordInput ? oldPasswordInput.closest('.mb-3').querySelector('label') : null;
+        const newPasswordLabel = newPasswordInput ? newPasswordInput.closest('.mb-3').querySelector('label') : null;
+        const confirmPasswordLabel = confirmPasswordInput ? confirmPasswordInput.closest('.mb-3').querySelector('label') : null;
+
+        // =========================================================================
+        // 2. PASSWORD VISIBILITY & INPUT LOOK CONTROLLER
+        // =========================================================================
+        function togglePasswordFieldsVisibility() {
+            if (!oldPasswordInput || !newPasswordInput || !confirmPasswordInput) return;
+
+            const hasValue = oldPasswordInput.value.trim().length > 0;
+
+            if (hasValue) {
+                newPasswordInput.disabled = false;
+                confirmPasswordInput.disabled = false;
+            } else {
+                // If the user clears the old password box, completely reset all inputs
+                newPasswordInput.disabled = true;
+                confirmPasswordInput.disabled = true;
+                newPasswordInput.value = '';
+                confirmPasswordInput.value = '';
+                resetOldPasswordStyles();
+                resetNewAndPasswordConfirmStyles();
+            }
+        }
+
+        /** Clears all validation borders, error text states, and color properties for Old Password */
+        function resetOldPasswordStyles() {
+            if (!oldPasswordInput || !oldPasswordLabel) return;
+            oldPasswordInput.classList.remove('is-valid', 'is-invalid', 'border-success', 'border-danger');
+            oldPasswordLabel.innerText = "Old Password (required)";
+            oldPasswordLabel.classList.remove('text-danger', 'text-success');
+        }
+
+        /** Clears all validation borders, error text states, and color properties for New and Confirm fields */
+        function resetNewAndPasswordConfirmStyles() {
+            if (!newPasswordInput || !confirmPasswordInput || !newPasswordLabel || !confirmPasswordLabel) return;
+            
+            newPasswordInput.classList.remove('is-valid', 'is-invalid', 'border-success', 'border-danger');
+            confirmPasswordInput.classList.remove('is-valid', 'is-invalid', 'border-success', 'border-danger');
+            
+            newPasswordLabel.innerText = "New Password (required)";
+            confirmPasswordLabel.innerText = "Confirm Password (required)";
+            
+            newPasswordLabel.classList.remove('text-danger', 'text-success');
+            confirmPasswordLabel.classList.remove('text-danger', 'text-success');
+        }
+
+        // =========================================================================
+        // 3. FRONTEND PASSWORD CROSS-FIELD VALIDATOR
+        // =========================================================================
+        function executeFrontendPasswordValidation() {
+
+            if (newPasswordInput.disabled) return;
+
+            const oldVal = oldPasswordInput.value;
+            const newVal = newPasswordInput.value;
+            const confirmVal = confirmPasswordInput.value;
+
+            resetNewAndPasswordConfirmStyles();
+
+            if (newVal.length === 0 && confirmVal.length === 0) return;
+
+            // RULE 1: Check if old password is identical to new password
+            if (newVal.length > 0 && oldVal === newVal) {
+                newPasswordInput.classList.remove('border-success', 'is-valid'); 
+                newPasswordInput.classList.add('is-invalid', 'border-danger');
+                newPasswordLabel.innerText = "New Password (New password cannot be the same as your old password)";
+                newPasswordLabel.classList.add('text-danger');
+                
+                // Inform the main submit button that data contains an error ---
+                if (typeof validateFormModificationState === "function") validateFormModificationState();
+                return false;
+            }
+
+            // RULE 2: Check if new password and confirm password fields match up
+            if (newVal.length > 0 && confirmVal.length > 0) {
+                if (newVal !== confirmVal) {
+                    newPasswordInput.classList.add('is-invalid', 'border-danger');
+                    confirmPasswordInput.classList.add('is-invalid', 'border-danger');
+                    
+                    newPasswordLabel.innerText = "New Password (new password does not match)";
+                    confirmPasswordLabel.innerText = "Confirm Password (new password does not match)";
+                    
+                    newPasswordLabel.classList.add('text-danger');
+                    confirmPasswordLabel.classList.add('text-danger');
+                    
+                    // Inform the main submit button that data contains an error ---
+                    if (typeof validateFormModificationState === "function") validateFormModificationState();
+                    return false;
+                } else {
+                    newPasswordInput.classList.add('is-valid', 'border-success');
+                    confirmPasswordInput.classList.add('is-valid', 'border-success');
+                    
+                    newPasswordLabel.innerText = "New Password (matched)";
+                    confirmPasswordLabel.innerText = "Confirm Password (matched)";
+                    
+                    newPasswordLabel.classList.add('text-success');
+                    confirmPasswordLabel.classList.add('text-success');
+                    
+                    // Run button engine to evaluate final validation state change ---
+                    if (typeof validateFormModificationState === "function") validateFormModificationState();
+                    return true;
+                }
+            }
+            
+            // Run button engine on general inputs modifications updates ---
+            if (typeof validateFormModificationState === "function") validateFormModificationState();
+            return true;
+        }
+
+        // =========================================================================
+        // 4. BACKEND LIVE PASSWORD MATCHER (DEBOUNCED FETCH ENGINE)
+        // =========================================================================
+        function triggerLivePasswordVerification() {
+            clearTimeout(passwordCheckTimeout);
+
+            const oldPasswordVal = oldPasswordInput.value.trim();
+
+            if (oldPasswordVal.length === 0) {
+                resetOldPasswordStyles();
+                togglePasswordFieldsVisibility();
+                //  Update button state if old password field is cleared ---
+                if (typeof validateFormModificationState === "function") validateFormModificationState();
+                return;
+            }
+
+            togglePasswordFieldsVisibility();
+
+            passwordCheckTimeout = setTimeout(() => {
+                
+                const verifyPayload = new FormData();
+                verifyPayload.append('old_password', oldPasswordVal);
+
+                const requestOptions = {
+                    method: "POST",
+                    body: verifyPayload
+                };
+
+                let targetUrl = "/verify_old_password";
+                // If the active browser window contains a parameter string (like ?id=2), 
+                // this appends it right onto your targetUrl string path!
+                if (window.location.search) {
+                    // If targetUrl doesn't have a question mark yet, add it
+                    if (!targetUrl.includes('?')) {
+                        targetUrl += window.location.search;
+                    } else {
+                        // If it already has filters, append using an ampersand
+                        targetUrl += '&' + window.location.search.substring(1);
+                    }
+                }
+
+                sendServerRequest(
+                    targetUrl, 
+                    requestOptions, 
+                    function(data) {
+                        resetOldPasswordStyles();
+
+                        if (data.valid === true) {
+                            oldPasswordInput.classList.add('is-valid', 'border-success');
+                            oldPasswordLabel.innerText = "Old Password (matched)";
+                            oldPasswordLabel.classList.add('text-success');
+                            
+                            // Re-run frontend cross-field validations first
+                            if (typeof executeFrontendPasswordValidation === "function") {
+                                executeFrontendPasswordValidation();
+                            }
+                            
+                            // --- THE FIX CORE: Instantly re-evaluate submit button parameters ---
+                            if (typeof validateFormModificationState === "function") {
+                                validateFormModificationState();
+                            }
+                        } else {
+                            oldPasswordInput.classList.add('is-invalid', 'border-danger');
+                            oldPasswordLabel.innerText = "Old Password (password do not match)";
+                            oldPasswordLabel.classList.add('text-danger');
+                            
+                            // --- THE FIX CORE: Instantly lock button down if backend hash matches fail ---
+                            if (typeof validateFormModificationState === "function") {
+                                validateFormModificationState();
+                            }
+                        }
+                    }
+                );
+
+            }, 1000); 
+        }
+
+
+        // --- EVENT LISTENERS FOR PASSWORD INPUTS ---
+        if (oldPasswordInput) {
+            oldPasswordInput.addEventListener('input', triggerLivePasswordVerification);
+        }
+        // Listeners for real-time frontend checks on new password fields as user types
+        if (newPasswordInput) {
+            newPasswordInput.addEventListener('input', executeFrontendPasswordValidation);
+        }
+        if (confirmPasswordInput) {
+            confirmPasswordInput.addEventListener('input', executeFrontendPasswordValidation);
+        }
+
+        // =========================================================================
+        // 5. SUBMIT BUTTON ACTION TRACKING
+        // =========================================================================
+        form.querySelectorAll('button[type="submit"]').forEach(button => {
+            button.addEventListener("click", function() {
+                currentActionValue = this.value; 
+            });
+        });
+
+        // =========================================================================
+        // 5. ASYNC FORM SUBMISSION PROCESSOR
+        // =========================================================================
+        form.addEventListener("submit", async function (event) {
+            event.preventDefault();
+            
+            // 1. Block submission if backend old password check failed
+            if (oldPasswordInput && oldPasswordInput.classList.contains('is-invalid')) {
+                showModal("error", "Cannot submit form: Your current password verification fails.");
+                return;
+            }
+
+            // 2. Block submission if any of new frontend cross-field rules fail
+            if (!executeFrontendPasswordValidation()) {
+                showModal("error", "Cannot submit form: Please correct the new password field errors.");
+                return;
+            }
+
+            const formData = new FormData(this);
+            if (currentActionValue) {
+                formData.append("action", currentActionValue);
+            } else {
+                formData.append("action", "employee_edit");
+            }
+
+            // Safely extracts the string path directly out of the HTML attribute definitions
+            let targetUrl = "/employee_edit"; // Secure fallback default string
+            
+            if (this.action && typeof this.action === 'string' && !this.action.includes('[object')) {
+                targetUrl = this.action;
+            } else if (form.getAttribute('action')) {
+                targetUrl = form.getAttribute('action'); 
+            }
+
+            // If the active browser window contains a parameter string (like ?id=2), 
+            // this appends it right onto targetUrl string path!
+            if (window.location.search) {
+                // If targetUrl doesn't have a question mark yet, add it
+                if (!targetUrl.includes('?')) {
+                    targetUrl += window.location.search;
+                } else {
+                    // If it already has filters, append using an ampersand
+                    targetUrl += '&' + window.location.search.substring(1);
+                }
+            }
+
+            // =========================================================================
+            // CONDITION SCENARIO A: USER CLICKED THE "INACTIVE" TRIGGER ACTION BUTTON
+            // =========================================================================
+            if (currentActionValue === "inactive") {
+                // Explicitly inject the correct action flag variable into the payload
+                formData.set("action", "inactive");
+
+                const requestOptions = {
+                    method: "POST",
+                    body: formData
+                };
+
+                // Open dialog modal popup first to alert the user.
+                // The fourth argument passes an onCloseCallback function that runs ONLY after clicking OK!
+                showModal(
+                    "warning", 
+                    "You are about to mark this employee profile as Inactive. Click OK to confirm and process this change.", 
+                    null, // No employee data structure object needed for warning headers
+                    // --- THE ONCLOSE OK CLICK CALLBACK ENGINE ---
+                    function() {
+                        // This block executes ONLY after the user clicks the modal's OK button
+                        sendServerRequest(
+                            targetUrl, 
+                            requestOptions, 
+                            function(data) {
+                                // Once backend responds successfully, show final success confirmation
+                                showModal("success", data.message, null, function() {
+                                    // Redirect home or reload list after the second OK click
+                                    if (data.redirect) window.location.href = data.redirect;
+                                });
+                            },
+                            function(errData) {
+                                showModal(errData.status || "error", errData.message || "Deactivation failed.");
+                            }
+                        );
+                    }
+                );
+            } 
+            // =========================================================================
+            // CONDITION B: USER CLICKED "UPDATE/EDIT" -> RUN ALL PASSWORD CHECKS
+            // =========================================================================
+            else {
+                // 1. Get the real-time runtime state of your password input element
+                const isPasswordFormActive = oldPasswordInput && !oldPasswordInput.disabled && oldPasswordInput.value.trim().length > 0;
+
+                // 2. Only validate if the old_password field is enabled AND contains text
+                if (isPasswordFormActive) {
+                    if (typeof executeFrontendPasswordValidation === "function" && !executeFrontendPasswordValidation()) {
+                        showModal("error", "Cannot process save operations: Resolve password validation alerts.");
+                        return; // Blocks the pipeline if active password rules fail
+                    }
+                } else {
+                    // If the fields are disabled/empty, wipe any leftover validation error traces cleanly before sending
+                    if (typeof resetNewAndPasswordConfirmStyles === "function") {
+                        resetNewAndPasswordConfirmStyles();
+                    }
+                }
+
+                formData.set("action", currentActionValue || "employee_edit");
+                const requestOptions = { method: "POST", body: formData };
+
+                sendServerRequest(targetUrl, requestOptions, function(data) {
+                    showModal("success", data.message, null, function() {
+                        if (data.redirect) window.location.href = data.redirect;
+                    });
+                }, function(errData) {
+                    showModal(errData.status || "error", errData.message || "Profile modification failed.");
+                });
+            }
+        }
+        
+        );   
+    });
+
+</script>
+
+{% endblock %}

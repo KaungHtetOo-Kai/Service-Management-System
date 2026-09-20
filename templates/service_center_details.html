@@ -1,0 +1,289 @@
+{% extends "layout.html" %} 
+
+{% block title %} 
+    Center detaiis
+{% endblock %} 
+
+{% block main %}
+    
+    <form id="edit_center_form" method="post" action="{{ url_for('service_center_details') }}">
+        <h2>Center dashboard: {{center.name}}</h2>
+        <br>
+        <div class="border border-dark-subtle border-3 rounded-3 py-3">
+            <div class="me-3 ms-3 d-flex">
+                <h5 class="my-auto">Center details: {{center.name}}</h5>       
+            </div>
+            <div class="row row-cols-2 row-cols-lg-4 g-3 mx-3 my-3 justify-content-center">
+                <!-- Card 1 -->
+                <div class="col">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title text-muted small uppercase">Total Employee</h5>
+                            <h2 class="card-text fw-bold mb-0">12</h2>
+                            <a href="#" class="card-link">View detail</a>
+                        </div>
+                    </div>
+                </div>
+                <!-- Card 2 -->
+                <div class="col">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title text-muted small uppercase">Total Open Repair</h5>
+                            <h2 class="card-text fw-bold mb-0">45</h2>
+                            <a href="#" class="card-link">View detail</a>
+                        </div>
+                    </div>
+                </div>
+                <!-- Card 3 -->
+                <div class="col">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title text-muted small uppercase">Inventory detail</h5>
+                            <h2 class="card-text fw-bold mb-0">8</h2>
+                            <a href="#" class="card-link">View detail</a>
+                        </div>
+                    </div>
+                </div>
+                <!-- Card 4 -->
+                <div class="col">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title text-muted small uppercase">Customer Feedback</h5>
+                            <h2 class="card-text fw-bold mb-0">1,240</h2>
+                            <a href="#" class="card-link">View detail</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="edit_center_div">
+                <!-- JavaScript will write page items here dynamically -->
+            </div>      
+        </div>
+    </form>
+
+
+{% endblock %}
+{% block scripts %}
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        let currentActionValue = null;
+        
+        const form = document.getElementById("edit_center_form");
+        if (!form) return;
+
+        // =========================================================================
+        // 1. Admin and Manager account checking for Update Center detail
+        // =========================================================================
+
+        const db_center_id = "{{ center.center_id }}";
+        const editCenterdiv = document.getElementById("edit_center_div")
+        editCenterdiv.innerHTML = "";
+
+        // 1. Is the current logged-in user a global Headquarter Super Admin from SC-000?
+        const isHeadquarterAdmin = (String(CURRENT_USER_CENTER_ID) === "SC-000");
+
+        // 2. is the employee Manager or admin?
+        const isManagerOrAdmin = ((String(CURRENT_USER_ROLE_TYPE) === "0") || (String(CURRENT_USER_ROLE_TYPE) === "1"))
+
+        // 3. Does this specific table row belong to the active logged-in branch admin's own center?
+        const isUserOwnBranch = (String(CURRENT_USER_CENTER_ID) === String(db_center_id));
+
+        if (isManagerOrAdmin) {
+                // If they ARE a manager, they can pass if they are HQ Admin OR if it's their own branch
+                if (isHeadquarterAdmin || isUserOwnBranch) {
+                    // inject edit element
+                    editCenterdiv.innerHTML =`
+                    <hr class="border border-dark border-2">
+                    <div class="me-3 ms-3 my-3 d-flex">
+                    <h5 class="my-auto">Update Center details</h5>
+                        <div class="ms-auto">
+                            <button class="btn btn-primary btn-sm" type="submit" name="action" value="inactive">Mark as Inactive</button>  
+                        </div>   
+                    </div>
+                    <p class="text-danger text-center">*** Instruction: Edit the respective fields to update. Center ID cannot be edit once it was created. *** </p>  
+                    <div class="row row-cols-2 row-cols-lg-6 gy-3 gx-3 me-3 ms-3 justify-content-center align-items-center">
+                        <div class="col">
+                            <input class="form-control" id="name" name="name" value="{{center.name}}" autocomplete="off" placeholder="Center Name" type="text" required>
+                            <input class="form-control" id="center_id" name="center_id" value="{{center.center_id}}" autocomplete="off" placeholder="Center ID" type="hidden" required>
+                        </div>
+                        <div class="col-lg-5 col-12">
+                            <input class="form-control" id="address" name="address" value="{{center.address}}" autocomplete="off" placeholder="Address" type="text">
+                        </div>
+                        <div class="col">
+                            <input class="form-control" id="phone" name="phone" value="{{center.phone}}" autocomplete="off" placeholder="Phone Number" type="text">
+                        </div>
+                        <div class="col-auto">
+                            <button class="btn btn-primary w-100" id="updateCenterBtn" type="submit" name="action" value="edit">Update Center</button>
+                        </div>
+                    </div>`;
+                }
+            }
+
+
+        // =========================================================================
+        // 1. disable Update Button TRACKING
+        // =========================================================================
+        // 1. Locate all your target form field and action button nodes
+        const nameInput = document.getElementById('name');
+        const addressInput = document.getElementById('address');
+        const phoneInput = document.getElementById('phone');
+        const updateBtn = document.getElementById('updateCenterBtn');
+
+        if (!nameInput || !updateBtn) return; // Guard clause to prevent script errors
+
+        // 2. CACHE INITIAL STATE: Save the pristine database values on page load [INDEX]
+        // These read the server-injected Jinja string values right out of the layout inputs
+        const ORIGINAL_VALUES_CACHE = {
+            name: nameInput.value.trim(),
+            address: addressInput ? addressInput.value.trim() : '',
+            phone: phoneInput ? phoneInput.value.trim() : ''
+        };
+
+        /**
+         * Evaluates live input modifications [INDEX].
+         * Disables the submit action button if inputs match history caches OR if required inputs are deleted.
+         */
+        function validateFormModificationState() {
+            // Fetch current live string values [INDEX]
+            const currentName = nameInput.value.trim();
+            const currentAddress = addressInput ? addressInput.value.trim() : '';
+            const currentPhone = phoneInput ? phoneInput.value.trim() : '';
+
+            // CONDITION A: Verify if any mandatory required data properties are wiped blank
+            const isRequiredFieldBlank = (currentName.length === 0);
+
+            // CONDITION B: Check if every single text input exactly matches the original cache [INDEX]
+            const isDataUnchanged = (
+                currentName === ORIGINAL_VALUES_CACHE.name &&
+                currentAddress === ORIGINAL_VALUES_CACHE.address &&
+                currentPhone === ORIGINAL_VALUES_CACHE.phone
+            );
+
+            // COMBINED DISPATCHER RULE:
+            // Lock the update button if a field is empty OR if absolutely nothing has changed [INDEX].
+            const shouldDisableButton = (isRequiredFieldBlank || isDataUnchanged);
+
+            if (shouldDisableButton) {
+                updateBtn.disabled = true;                 // Hard blocks browser form submissions
+                updateBtn.classList.add('disabled');       // Softens button opacity using Bootstrap look rules
+            } else {
+                updateBtn.disabled = false;                // Restores interactive node properties [INDEX]
+                updateBtn.classList.remove('disabled');    // Lights the button back up to full color opacity
+            }
+        }
+
+        // 3. ATTACH INTERACTIVE LISTENERS [INDEX]
+        // 'input' catches immediate text adjustments, keystroke deletes, and copy-paste events instantly
+        nameInput.addEventListener('input', validateFormModificationState);
+        if (addressInput) addressInput.addEventListener('input', validateFormModificationState);
+        if (phoneInput) phoneInput.addEventListener('input', validateFormModificationState);
+
+        // 4. RUN ONCE ON INITIAL MOUNT [INDEX]
+        // Forces the update button to start as disabled since data is unchanged on load
+        validateFormModificationState();
+
+        // =========================================================================
+        // 2. SUBMIT BUTTON ACTION TRACKING
+        // =========================================================================
+        form.querySelectorAll('button[type="submit"]').forEach(button => {
+            button.addEventListener("click", function() {
+                currentActionValue = this.value; 
+            });
+        });
+
+        // =========================================================================
+        // 3. ASYNC FORM SUBMISSION PROCESSOR
+        // =========================================================================
+        form.addEventListener("submit", async function (event) {
+            event.preventDefault();
+        
+        const formData = new FormData(this);
+            if (currentActionValue) {
+                formData.append("action", currentActionValue);
+            } else {
+                formData.append("action", "service_center_details");
+            }
+
+            // Prevent the [object RadioNodeList] 404 Routing Error ---
+            // Safely extracts the string path directly out of the HTML attribute definitions
+            let targetUrl = "/service_center_details"; // Secure fallback default string
+            
+            if (this.action && typeof this.action === 'string' && !this.action.includes('[object')) {
+                targetUrl = this.action;
+            } else if (form.getAttribute('action')) {
+                targetUrl = form.getAttribute('action'); 
+            }
+
+            // If the active browser window contains a parameter string (like ?id=2), 
+            // this appends it right onto your targetUrl string path!
+            if (window.location.search) {
+                // If targetUrl doesn't have a question mark yet, add it
+                if (!targetUrl.includes('?')) {
+                    targetUrl += window.location.search;
+                } else {
+                    // If it already has filters, append using an ampersand
+                    targetUrl += '&' + window.location.search.substring(1);
+                }
+            }
+
+            // =========================================================================
+            // CONDITION SCENARIO A: USER CLICKED THE "INACTIVE" TRIGGER ACTION BUTTON
+            // =========================================================================
+            if (currentActionValue === "inactive") {
+                // Explicitly inject the correct action flag variable into the payload
+                formData.set("action", "inactive");
+
+                const requestOptions = {
+                    method: "POST",
+                    body: formData
+                };
+
+                // Open dialog modal popup first to alert the user.
+                // The fourth argument passes an onCloseCallback function that runs ONLY after clicking OK!
+                showModal(
+                    "warning", 
+                    "You are about to mark this Service center as Inactive. Click OK to confirm and process this change.", 
+                    null, // No employee data structure object needed for warning headers
+                    // --- THE ONCLOSE OK CLICK CALLBACK ENGINE ---
+                    function() {
+                        // This block executes ONLY after the user clicks the modal's OK button
+                        sendServerRequest(
+                            targetUrl, 
+                            requestOptions, 
+                            function(data) {
+                                // Once backend responds successfully, show final success confirmation
+                                showModal("success", data.message, null, function() {
+                                    // Redirect home or reload list after the second OK click
+                                    if (data.redirect) window.location.href = data.redirect;
+                                });
+                            },
+                            function(errData) {
+                                showModal(errData.status || "error", errData.message || "Deactivation failed.");
+                            }
+                        );
+                    }
+                );
+            } 
+            // =========================================================================
+            // CONDITION B: USER CLICKED "UPDATE/EDIT" -> RUN ALL PASSWORD CHECKS
+            // =========================================================================
+            else {
+
+                formData.set("action", currentActionValue || "service_center_details");
+                const requestOptions = { method: "POST", body: formData };
+
+                sendServerRequest(targetUrl, requestOptions, function(data) {
+                    showModal("success", data.message, null, function() {
+                        if (data.redirect) window.location.href = data.redirect;
+                    });
+                }, function(errData) {
+                    showModal(errData.status || "error", errData.message || "Profile modification failed.");
+                });
+            }
+        });
+
+    });
+</script>
+
+{% endblock %}

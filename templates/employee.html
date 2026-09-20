@@ -1,0 +1,503 @@
+{% extends "layout.html" %} 
+
+{% block title %} 
+    Employee 
+{% endblock %} 
+
+{% block main %}
+    <h2>Employee Management</h2>
+    <br>
+    <div class="border border-dark-subtle border-3 rounded-3 py-3">
+        <div class="me-3 ms-3 d-flex">
+            <h5 class="my-auto">Total Employee: {{ total_count }}</h5>
+            <div class="ms-auto">
+                 <button class="btn btn-primary btn-sm" id="createEmployeeBtn" type="submit" onclick="window.location.href='/employee_create'">Create Employee</button> 
+            </div>   
+        </div>
+        <hr class="opacity-0">
+        <div class="row row-cols-2 row-cols-lg-4 gy-3 gx-3 align-items-center justify-content-center">
+            <div class="col text-center">
+                <figure class="image-wrapper" >
+                    <img src="./static/img/Manager.png" class="img-fluid" alt="Manager">
+                    <figcaption>Total Managers: {{ total_MGR }}</figcaption>
+                </figure>
+            </div>
+            <div class="col text-center">
+                <figure class="image-wrapper">
+                    <img src="./static/img/engineer.png" class="img-fluid" alt="Engineer">
+                    <figcaption>Total Engineers: {{ total_ENG }}</figcaption>
+                </figure>
+            </div>
+            <div class="col text-center">
+                <figure class="image-wrapper">
+                    <img src="./static/img/receptionist.png" class="img-fluid" alt="Receptionists">
+                <figcaption>Total Receptionists: {{ total_REC }}</figcaption>
+                </figure>
+            </div>
+            <div class="col text-center">
+                <figure class="image-wrapper">
+                    <img src="./static/img/store.png" class="img-fluid" alt="Store">
+                <figcaption>Total Store Executives: {{ total_STR }}</figcaption>
+                </figure>
+            </div>   
+        </div>
+    </div>
+    <br>
+    <div class="border border-dark-subtle border-3 rounded-3 py-3">
+        <div class="me-3 ms-3 d-flex gap-3">
+            <h5 class="my-auto">Search Employee </h5>
+            <select id="active" name="active" style="width: 85px; height: auto;" class="rounded-3 border-dark-subtle">
+                <option value="1" selected>Active</option>
+                <option value="0" >Inactive</option>
+            </select>
+            <div class="ms-auto">
+                <button class="btn btn-secondary btn-sm" id="resetTableBtn"  type="button" onclick="executeResetTable()" style="display: none;">Reset Table</button>
+                <button class="btn btn-primary btn-sm" id="searchEmployeeBtn" type="button" onclick="executeEmployeeSearch()">Search Employee</button>
+            </div>   
+        </div>
+        <br>
+        <div class="row row-cols-2 row-cols-lg-6 gy-3 gx-3 me-3 ms-3 align-items-center justify-content-center">
+            <div class="col-auto">
+                <input id="staff_id" class="form-control" name="staff_id" autocomplete="off" placeholder="Staff_id" type="text">
+            </div>
+            <div class="col-auto">
+                <input id="name" class="form-control" name="name" autocomplete="off" placeholder="Name" type="text">
+            </div>
+            <div class="col-auto">
+                <select class="form-select" id="position" name="position" required>
+                    <option value="" selected disabled>Select position</option>
+                    <option value="1">Manager</option>
+                    <option value="2">Engineer</option>
+                    <option value="3">Receptionist</option>
+                    <option value="4">Store Executive</option>
+                </select>
+            </div>
+            <div class="col-auto">
+                <select class="form-select" id="center_id" name="center_id" required>
+                    <option value="" selected disabled>Select Service Center</option>
+                    {% for center in centers %}
+                    <option value="{{center.center_id}}">{{center.name}} ({{center.center_id}})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-auto">
+                <select class="form-select" id="department" name="department" required>
+                    <option value="" selected disabled>Select department</option>
+                    <option value="1">Management Department</option>
+                    <option value="2">Technical Department</option>
+                    <option value="3">Finance Department</option>
+                    <option value="4">Store Department</option>
+                </select>
+            </div>
+            <div class="col-auto">
+                <input id="phone" class="form-control" name="phone" autocomplete="off" placeholder="Phone Number" type="text">
+            </div>
+        </div>
+        <br> 
+        <div class="table-responsive mx-3">
+            <table class="table table-bordered table-striped">
+                <thead class="thead-light">
+                    <tr>
+                        <th>Edit</th>
+                        <th>Staff_id</th>
+                        <th>Name</th>
+                        <th>Position</th>
+                        <th>Service Center</th>
+                        <th>Department</th>
+                        <th>Phone</th>
+                        <th>More Details</th>
+                    </tr>
+                </thead> 
+                <tbody id="employeeTableBody">    
+                        <tr class="align-middle"></tr>
+                            <!-- JavaScript will write td items here dynamically -->
+                        </tr>
+                </tbody>               
+            </table>
+        </div>
+        <div class="d-flex justify-content-center mt-3">
+            <nav aria-label="Page navigation">
+                <ul id="tablePaginationElement" class="pagination pagination-sm mb-0">
+                    <!-- JavaScript will write page items here dynamically -->
+                </ul>
+            </nav>
+        </div>      
+    </div>
+    
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // ==========================================
+    // 1. GLOBAL STATE VARIABLES
+    // ==========================================
+    // Holds the active modal callback action safely across handlers
+    
+    // Tracks the initialized Bootstrap modal layout overlay instance to prevent duplicate layering artifacts
+    let bootstrapModalInstance = null;
+    
+    // Global tracking variable keeping track of active page state shifts
+    let currentActivePage = 1;
+
+    // ==========================================
+    // 2. pagination element rendering
+    // ==========================================
+    /**
+     * Renders the HTML button layout controls dynamically underneath the data grids.
+     * @param {object} metadata - Holds pagination counts (current_page, total_pages, total_records)
+     */
+    function renderPaginationControls(metadata) {
+        const paginationUl = document.getElementById('tablePaginationElement');
+        if (!paginationUl) return;
+
+        // --- CONDITION LOOK: Hide pagination entirely if total records are less than or equal to 10 ---
+        if (!metadata || metadata.total_pages <= 1) {
+            paginationUl.innerHTML = ''; // Clears container layout out of sight
+            return;
+        }
+
+        let htmlMarkup = '';
+
+        // 1. Build the "Previous" directional control element button
+        const isPrevDisabled = metadata.current_page === 1;
+        htmlMarkup += `
+            <li class="page-item ${isPrevDisabled ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="changeTablePage(${metadata.current_page - 1}, event)" aria-label="Previous">
+                    <span aria-hidden="true">&laquo;</span>
+                </a>
+            </li>
+        `;
+
+        // 2. Loop through and draw sequential numeric page numbers
+        for (let i = 1; i <= metadata.total_pages; i++) {
+            const isActive = metadata.current_page === i;
+            htmlMarkup += `
+                <li class="page-item ${isActive ? 'active' : ''}">
+                    <a class="page-link" href="#" onclick="changeTablePage(${i}, event)">${i}</a>
+                </li>
+            `;
+        }
+
+        // 3. Build the "Next" directional control element button
+        const isNextDisabled = metadata.current_page === metadata.total_pages;
+        htmlMarkup += `
+            <li class="page-item ${isNextDisabled ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="changeTablePage(${metadata.current_page + 1}, event)" aria-label="Next">
+                    <span aria-hidden="true">&raquo;</span>
+                </a>
+            </li>
+        `;
+
+        paginationUl.innerHTML = htmlMarkup;
+    }
+
+    /** Function called when a user selects a page index button link element */
+    function changeTablePage(targetPageNumber, event) {
+        if (event) event.preventDefault();
+        // Fire search routine passing along targeted page tracking arguments
+        executeEmployeeSearch(targetPageNumber);
+    }
+
+    // ==========================================
+    // 3. TARGET URL HANDLER A: MORE DETAILS POPUP
+    // ==========================================
+    /**
+     * Interceptor callback executed when a user selects an employee's "More Details" hyperlink.
+     */
+    function handleDetailLinkClick(event) {
+        event.preventDefault();
+        
+        const staffId = this.getAttribute('data-id');
+        if (!staffId) {
+            showModal("error", "Error: Selected Employee Staff ID reference trace is missing.");
+            return;
+        }
+
+        const targetUrl = `/more_detail/?id=${encodeURIComponent(staffId)}`;
+
+        sendServerRequest(targetUrl, function(data) {
+            if (data.status === "More Details") {
+                showModal(data.status, data.message, data.employee);
+            } else {
+                showModal("error", data.message || "Failed to process target profile parameters.");
+            }
+        });
+    }
+
+    /**
+     * 4. Monitors all 6 filtering fields to toggle the Search Button's disabled state.
+     * Prevents empty submissions that trigger backend 404/500 routing anomalies.
+     */
+    function checkSearchFieldsValidation() {
+        const searchBtn = document.getElementById('searchEmployeeBtn');
+        if (!searchBtn) return;
+
+        // 1. Fetch values from all text inputs and select elements safely
+        const staffIdVal  = document.getElementById('staff_id')   ? document.getElementById('staff_id').value.trim()   : '';
+        const nameVal     = document.getElementById('name')       ? document.getElementById('name').value.trim()       : '';
+        const positionVal = document.getElementById('position')   ? document.getElementById('position').value          : '';
+        const centerIdVal = document.getElementById('center_id')  ? document.getElementById('center_id').value.trim()  : '';
+        const deptVal     = document.getElementById('department') ? document.getElementById('department').value        : '';
+        const phoneVal    = document.getElementById('phone')      ? document.getElementById('phone').value.trim()      : '';
+        const activeVal   = document.getElementById('active')     ? document.getElementById('active').value.trim()      : '';
+
+        // 2. Determine if every single filtering input element is completely blank
+        const isAllFieldsEmpty = (!staffIdVal && !nameVal && !positionVal && !centerIdVal && !deptVal && !phoneVal && (activeVal === '1' || activeVal === ''));
+
+        // 3. Dynamically manage HTML properties and core structural classes
+        if (isAllFieldsEmpty) {
+            searchBtn.disabled = true;                // Hard blocks all browser click interaction pathways
+            searchBtn.classList.add('disabled');      // Formally injects Bootstrap's muted disabled opacity look
+        } else {
+            searchBtn.disabled = false;               // Activates the node engine element properties
+            searchBtn.classList.remove('disabled');   // Fully restores interactive colors
+        }
+    }
+
+
+    // ==========================================
+    // 5. DYNAMIC MULTI-FIELD SEARCH REFRESH
+    // ==========================================
+    /**
+     * Collects all 6 input/select filters dynamically, compiles a secure query parameters chain,
+     * and handles flexible compound multi-field searching configurations back to Flask.
+     * Bind this to the search submission triggers: onclick="executeEmployeeSearch()"
+     */
+    function executeEmployeeSearch(pageNumber = 1) {
+    currentActivePage = pageNumber;
+
+    // Collect whatever input data values currently exist inside your search elements
+    const staffIdVal  = document.getElementById('staff_id')   ? document.getElementById('staff_id').value.trim()   : '';
+    const nameVal     = document.getElementById('name')       ? document.getElementById('name').value.trim()       : '';
+    const positionVal = document.getElementById('position')   ? document.getElementById('position').value          : '';
+    const centerIdVal = document.getElementById('center_id')  ? document.getElementById('center_id').value.trim()  : '';
+    const deptVal     = document.getElementById('department') ? document.getElementById('department').value        : '';
+    const phoneVal    = document.getElementById('phone')      ? document.getElementById('phone').value.trim()      : '';
+    const activeVal   = document.getElementById('active')     ? document.getElementById('active').value.trim()     : '';
+    
+    const urlParams = new URLSearchParams();
+    urlParams.append('page', currentActivePage); // Append targeted limit mapping page key
+    
+    if (staffIdVal)  urlParams.append('staff_id', staffIdVal);
+    if (nameVal)     urlParams.append('name', nameVal);
+    if (positionVal) urlParams.append('position', positionVal);
+    if (centerIdVal) urlParams.append('center_id', centerIdVal);
+    if (deptVal)     urlParams.append('department', deptVal);
+    if (phoneVal)    urlParams.append('phone', phoneVal);
+    if (activeVal)   urlParams.append('active', activeVal);
+
+    const targetUrl = `/search_employees/?${urlParams.toString()}`;
+
+    // Dispatch the network fetch request package over your dynamic universal gateway
+    sendServerRequest(targetUrl, function(data) {
+        if (data.status === "success") {
+            // A. Update table row contents matching current 10-row dataset layout array
+            renderDynamicTableRows(data.employees);
+            
+            // B. Recalculate and render the pagination controls underneath
+            renderPaginationControls(data.pagination);
+            
+            // C. Show Reset Table UI controls button if a user actually searched criteria text inputs
+            const isFilteringActive = (staffIdVal || nameVal || positionVal || centerIdVal || deptVal || phoneVal || activeVal === '0');
+            const resetBtn = document.getElementById('resetTableBtn');
+            if (resetBtn) {
+                resetBtn.style.display = isFilteringActive ? 'inline-block' : 'none';
+            }
+        } else {
+            showModal("error", data.message || "Query indexing operation failed.");
+            }
+        });
+    }
+
+    // ==========================================
+    // 6. DYNAMIC TABLE GENERATION BUILDER
+    // ==========================================
+    /**
+     * Completely rewrites the DOM tree contents of table body, managing security lockdowns.
+     * @param {Array} employeesArray - Collection of data dictionaries passed from your Flask route.
+     */
+    function renderDynamicTableRows(employeesArray) {
+        const tbody = document.getElementById('employeeTableBody');
+        if (!tbody) return;
+
+        // Clear existing inner markup completely to make room for fresh search matches
+        tbody.innerHTML = '';
+
+        // Handle empty results display state tracking constraints
+        if (!employeesArray || employeesArray.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="8" class="text-center text-muted py-4 fw-medium">
+                        No employee records match your active filtering parameters.
+                    </td>
+                </tr>`;
+            return;
+        }
+
+        // Process elements one by one from the array stream
+        employeesArray.forEach(employee => {
+            // 1. Is the current logged-in user a global Headquarter Super Admin from SC-000?
+            const isHeadquarterAdmin = (String(CURRENT_USER_CENTER_ID) === "SC-000");
+
+            // 2. Does this specific table row belong to the active logged-in branch admin's own center?
+            const isUserOwnBranch = (String(CURRENT_USER_CENTER_ID) === String(employee.center_id));
+
+            // 3. is the employee Manager or admin?
+            const isManagerOrAdmin = ((String(CURRENT_USER_ROLE_TYPE) === "0") || (String(CURRENT_USER_ROLE_TYPE) === "1"))
+
+            // 4. SECURE RULE EVALUATION:
+            let isEditingBlocked = true; // Start by locking down everything by default (Fail-Safe Design)
+
+            if (isManagerOrAdmin) {
+                // If they ARE a manager, they can pass if they are HQ Admin OR if it's their own branch
+                if (isHeadquarterAdmin || isUserOwnBranch) {
+                    isEditingBlocked = false; // Successfully unlock access permissions!
+                }
+            }
+            
+            let btnClass = "btn btn-borderless btn-sm";
+            let btnDisabledAttr = "";
+            let svgOpacityAttr = "";
+
+            if (isEditingBlocked) {
+                btnClass = "btn btn-borderless btn-sm disabled"; // Applies Bootstrap's locked styling class
+                btnDisabledAttr = "disabled";                     // Blocks browser pointer interaction events
+                svgOpacityAttr = 'opacity="0.5"';                 // Lowers the pen drawing icon visibility to 50%
+            }
+
+            const row = document.createElement('tr');
+            row.className = "align-middle";
+
+            // Injecting the data rows into layout slots using template literal string values
+            row.innerHTML = `
+                <td class="text-center" style="width: 3%;">
+                    <button type="button" class="${btnClass}" ${btnDisabledAttr} onclick="window.location.href='/employee_edit/?id=${ employee.id }'">
+                        <svg xmlns="http://w3.org" width="16" height="16" fill="currentColor" class="bi bi-pencil-square" viewBox="0 0 16 16" ${svgOpacityAttr}>
+                            <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"></path>
+                            <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"></path>
+                        </svg>
+                    </button>
+                </td>
+                <td>${employee.staff_id || ''}</td>
+                <td>${employee.name || ''}</td>
+                <td>${employee.position || ''}</td>
+                <td>${employee.center_name || ''}</td>
+                <td>${employee.department || ''}</td>
+                <td>${employee.phone || ''}</td>
+                <td>
+                    <a href="#" class="more-details-link" data-id="${employee.staff_id}">More Details</a>
+                </td>
+            `;
+
+            tbody.appendChild(row);
+        });
+
+        // Re-scans layout tree to attach operational event handlers cleanly to the dynamic hyperlinks
+        initializeDetailLinkListeners();
+    }
+
+    /**
+     * Sweeps the layout structure to bind profile view intercept functions to target nodes.
+     */
+    function initializeDetailLinkListeners() {
+        const detailLinks = document.querySelectorAll('.more-details-link');
+
+        detailLinks.forEach(link => {
+            link.removeEventListener('click', handleDetailLinkClick);
+            link.addEventListener('click', handleDetailLinkClick);
+        });
+    }
+
+    // ==========================================
+    // 7. CORE RUNTIME DOMINITIALIZER ENTRYWAY
+    // ==========================================
+    document.addEventListener('DOMContentLoaded', function () {
+        // Initial bindings for links rendered by Jinja on the very first page mount
+        initializeDetailLinkListeners();
+
+        // List out all 6 field identifiers to bind live listening events
+        const inputIdsList = ['staff_id', 'name', 'position', 'center_id', 'department', 'phone', 'active'];
+
+        inputIdsList.forEach(id => {
+            const fieldElement = document.getElementById(id);
+            if (fieldElement) {
+                // 'input' fires instantly on any character type, deletion, or copy-paste change
+                fieldElement.addEventListener('input', checkSearchFieldsValidation);
+                // 'change' captures select option updates on dropdown fields reliably
+                fieldElement.addEventListener('change', checkSearchFieldsValidation);
+            }
+        });
+
+        // Run once on page load to ensure it starts securely disabled
+        checkSearchFieldsValidation();
+
+        // --- THE INITIAL PAGINATED PAGE LOAD LOAD ACCORDING TO YOUR IDEA ---
+        // Instead of loading unpaginated templates via Jinja, this fetches page 1 
+        // dynamically right as the window finishes mounting, completely preventing slow loads!
+        executeEmployeeSearch(1);
+
+        // create btn validation
+        const createEmployeeBtn = document.getElementById("createEmployeeBtn")
+        if (createEmployeeBtn) {
+            // check user is Headquater Admin
+            const isHeadquarterAdmin = (String(CURRENT_USER_CENTER_ID) === "SC-000");
+            
+            // If current user is Headquater Admin, make button enable
+            if(isHeadquarterAdmin){
+                // Remove the 'disabled' class
+                createEmployeeBtn.classList.remove('disabled');
+            }
+
+        }
+    });
+
+    // ==========================================
+    // 8. THE RESET TABLE ACTIONS ENGINE
+    // ==========================================
+    /**
+     * Clears out all input boxes and dropdown forms, executes a raw "WHERE 1=1" 
+     * search command back to Flask, and hides the button container once complete.
+     */
+    function executeResetTable() {
+        // 1. Target and wipe text data fields cleanly
+        if (document.getElementById('staff_id'))  document.getElementById('staff_id').value = '';
+        if (document.getElementById('name'))      document.getElementById('name').value = '';
+        if (document.getElementById('phone'))     document.getElementById('phone').value = '';
+        if (document.getElementById('center_id')) document.getElementById('center_id').value = '';
+
+        // 2. Reset dropdown selectors back to default disabled prompt text cards (index 0)
+        if (document.getElementById('position'))   document.getElementById('position').selectedIndex = 0;
+        if (document.getElementById('department')) document.getElementById('department').selectedIndex = 0;
+
+        // 3. Explicitly force the active dropdown selection back to '1' (Active)
+        if (document.getElementById('active')) {
+            document.getElementById('active').value = '1';
+        }
+
+        // 4. Since inputs are now empty, fire validation to re-disable the main search button
+        checkSearchFieldsValidation();
+
+        // 5. Fire an empty query parameter string to fetch Page 1. 
+        // Since JavaScript just reset the dropdown to '1', URLSearchParams will append 
+        // page=1&active=1 automatically through executeEmployeeSearch(1)
+        if (typeof executeEmployeeSearch === "function") {
+            executeEmployeeSearch(1);
+        } else {
+            // Alternative fallback route if using bare strings URLs
+            const targetUrl = `/search_employees/?page=1&active=1`; 
+            sendServerRequest(targetUrl, function(data) {
+                if (data.status === "success") {
+                    renderDynamicTableRows(data.employees);
+                    const resetBtn = document.getElementById('resetTableBtn');
+                    if (resetBtn) resetBtn.style.display = 'none';
+                } else {
+                    showModal("error", data.message || "Could not re-fetch default dataset structures.");
+                }
+            });
+        }
+    }
+
+
+</script>
+{% endblock %}
+

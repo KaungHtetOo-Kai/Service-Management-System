@@ -1,0 +1,95 @@
+{% extends "layout.html" %} 
+
+{% block title %} 
+    Log In 
+{% endblock %} 
+
+{% block main %}
+<form id="loginForm" method="post" action="/login">
+    <div class="container-fluid d-flex py-5 justify-content-center align-items-center text-center">
+        <div class="form-control mx-auto" style="height: 100%; max-width: 400px">
+            <form class="p-5 p-md-5 border rounded-3 bg-body-tertiary">
+                <hr class="opacity-0" />
+                <img style="height: auto; width: 100px" alt="logo" src="./static/img/logo.png" />
+                <h2>Welcome Back!</h2>
+                <hr class="opacity-0" />
+                <div class="form-floating mb-3">
+                    <input type="text" class="form-control" autocomplete="off" name="staff_id" id="staff_id" placeholder="Staff ID" />
+                    <label for="staff_id">Staff ID</label>
+                </div>
+                <div class="form-floating mb-3">
+                    <input type="password" class="form-control" autocomplete="off" name="password" id="password" placeholder="Password" />
+                    <label for="password">Password</label>
+                </div>
+                <div class="checkbox mb-3">
+                    <label>
+                        <input type="checkbox" id="show_password_checkbox" /> Show Password
+                    </label>
+                </div>
+                <button class="w-100 btn btn-lg btn-outline-primary" type="submit">
+                    Log in
+                </button>
+                <hr class="border border-primary border-2 my-4" />
+            </form>
+        </div>
+    </div>
+</form>
+{% endblock %}
+{% block scripts %}
+<script>
+    document
+        .getElementById("loginForm")
+        .addEventListener("submit", async function (event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+
+            try {
+                const response = await fetch("/login", {
+                    method: "POST",
+                    body: formData,
+                });
+
+                // Fallback tracking check for HTML response wrappers
+                const contentType = response.headers.get("content-type");
+                if (!contentType || !contentType.includes("application/json")) {
+                    showModal(
+                        "error",
+                        "The server returned an unreadable layout. Check your Python terminal console logs.",
+                    );
+                    return;
+                }
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Success path: instantly jump down to homepage
+                    window.location.href = data.redirect;
+                } else {
+                    const displayMessage =
+                        data.message ||
+                        "An unknown processing error occurred. Please try again.";
+                    const displayStatus = data.status || "error";
+
+                    showModal(displayStatus, displayMessage);
+                }
+            } catch (error) {
+                console.error("Fetch Processing Exception Details:", error);
+                showModal(
+                    "error",
+                    "Failed to communicate with the server. Please check your network connection.",
+                );
+            }
+        });
+
+    const passwordInput = document.getElementById("password");
+    const showPasswordCheckbox = document.getElementById("show_password_checkbox");
+
+    showPasswordCheckbox.addEventListener("change", function () {
+        if (this.checked) {
+            passwordInput.type = "text";
+        } else {
+            passwordInput.type = "password";
+        }
+    });
+</script>
+{% endblock %}

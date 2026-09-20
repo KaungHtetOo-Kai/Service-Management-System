@@ -1,0 +1,197 @@
+{% extends "layout.html" %} 
+
+{% block title %} 
+    Repair ticket Create
+{% endblock %} 
+
+{% block main %}
+    <h2>Create Repair Tickets</h2>
+    <hr class="opacity-0">
+    <form id="create_repair_ticket_form" method="post" action="{{ url_for('repair_ticket_create') }}">
+        <div class="border border-dark-subtle border-3 rounded-3 py-3 mx-auto" style="height: auto; width: 100%; max-width: 1000px;">
+            <div class="me-3 ms-3 d-flex">
+                <h5 class="my-auto">Customer Information</h5> 
+            </div>
+            <hr class="opacity-0">
+            <div class="row row-cols-1 row-cols-lg-3 g-5 mx-3 justify-content-center">
+                <!-- Card 1 -->
+                <div class="col">
+                    <label for="customer_name" class="form-label">Customer Name (required)</label>
+                    <input type="text" class="form-control" name="customer_name" id="customer_name" placeholder="Name" required>
+                </div>
+                <!-- Card 2 -->
+                <div class="col">
+                    <label for="phone" class="form-label">Customer Phone (required)</label>
+                    <input type="text" class="form-control" name="phone" autocomplete="off" id="phone" placeholder="Phone" required>
+                </div>
+                <!-- Card 3 -->
+                <div class="col">
+                    <label for="dealer_info" class="form-label">Dealer Information </label>
+                    <input type="text" class="form-control" name="dealer_info" id="dealer_info" placeholder="Dealer Information">
+                </div>
+            </div>
+        </div>
+        <hr class="opacity-0">
+        <div class="border border-dark-subtle border-3 rounded-3 py-3 mx-auto" style="height: auto; width: 100%; max-width: 1000px;">
+            <div class="me-3 ms-3 d-flex">
+                <h5 class="my-auto">Device Information</h5> 
+            </div>
+            <hr class="opacity-0">
+            <div class="row row-cols-1 row-cols-lg-3 g-5 mx-3 mb-3 justify-content-center">
+                <!-- Card 1 -->
+                <div class="col">
+                    <label for="model" class="form-label">Phone Model (required)</label>
+                    <input type="text" class="form-control" name="model" id="model" placeholder="Phone Model" required>
+                </div>
+                <!-- Card 2 -->
+                <div class="col">
+                    <label for="IMEI" class="form-label">IMEI (required)</label>
+                    <input type="number" class="form-control" name="IMEI" autocomplete="off" id="IMEI" placeholder="IMEI" required>
+                </div>
+                <!-- Card 3 -->
+                <div class="col">
+                    <label for="purchase_date" class="form-label">Purchase date (required)</label>
+                    <input type="date" class="form-control" name="purchase_date" autocomplete="off" id="purchase_date" placeholder="Purchase date" required>
+                </div>
+                <!-- Card 4 -->
+                <div class="col">
+                    <label for="physical_condition" class="form-label">Physical Condition</label>
+                    <input type="text" class="form-control" name="physical_condition" autocomplete="off" id="physical_condition" placeholder="Physical Condition">
+                </div>
+                <!-- Card 5 -->
+                <div class="col">
+                    <label for="accessories" class="form-label">Left Accessories at SC</label>
+                    <input type="text" class="form-control" name="accessories" autocomplete="off" id="accessories" placeholder="Left Accessories at SC">
+                </div>
+                <!-- Card 6 -->
+                <div class="col">
+                    <label for="cus_error" class="form-label">Customer Mentioned Issue (required)</label>
+                    <input type="text" class="form-control" name="cus_error" autocomplete="off" id="cus_error" placeholder="Customer Mentioned Issue" required>
+                </div>
+                <div class="col-lg-8">
+                    <label for="error_detail" class="form-label">Error details (required)</label>
+                    <input type="text" class="form-control" name="error_detail" autocomplete="off" id="error_detail" placeholder="Error details" required>
+                </div>
+                <div class="col">
+                    <label for="engineer_name" class="form-label">Send to Enginner (required)</label>
+                    <select class="form-select" id="engineer_name" name="engineer_name" required>
+                        <option value="" selected disabled>Select Engineer</option>
+                        {% for engineer in engineers %}
+                            <option value="{{engineer.id}}">{{engineer.name}} ({{engineer.staff_id}})</option>
+                        {% endfor %}       
+                    </select>
+                </div>
+            </div>
+            <div class="text-center py-3">
+                <button class="btn btn-primary btn" id="createBtn" type="submit">Create Repair Voucher</button>
+            </div>
+        </div>
+    </form>
+    
+{% endblock %}
+
+{% block scripts %}
+
+<script>
+
+    // check field validation
+    function checkBtnValidation(){
+        const createBtn = document.getElementById("createBtn");
+        if (!createBtn) return;
+        
+        // 1. Fetch values from all inputs elements safely
+        const customerNameVal   = document.getElementById('customer_name')  ? document.getElementById('customer_name').value.trim()  : '';
+        const phoneVal          = document.getElementById('phone')          ? document.getElementById('phone').value.trim() : '';
+        const modelVal          = document.getElementById('model')          ? document.getElementById('model').value.trim() : '';
+        const imeiVal           = document.getElementById('IMEI')           ? document.getElementById('IMEI').value.trim()  : '';
+        const purchaseDateVal   = document.getElementById('purchase_date')  ? document.getElementById('purchase_date').value.trim()  : '';
+        const cusErrorVal       = document.getElementById('cus_error')      ? document.getElementById('cus_error').value.trim() : '';
+        const errorDetailsVal   = document.getElementById('error_detail')   ? document.getElementById('error_detail').value.trim() : '';
+        const engineerVal       = document.getElementById('engineer_name')  ? document.getElementById('engineer_name').value.trim() : '';
+
+        // 2. Determine if every single filtering input element is completely blank
+        const isAllFieldsEmpty = (!customerNameVal && !phoneVal && !modelVal && !imeiVal && !purchaseDateVal && !cusErrorVal && !errorDetailsVal && !engineerVal);
+
+        // 3. Dynamically manage HTML properties and core structural classes
+        if (isAllFieldsEmpty) {
+            createBtn.disabled = true;                // Hard blocks all browser click interaction pathways
+            createBtn.classList.add('disabled');      // Formally injects Bootstrap's muted disabled opacity look
+        } else {
+            createBtn.disabled = false;               // Activates the node engine element properties
+            createBtn.classList.remove('disabled');   // Fully restores interactive colors
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+
+        // Define both active form types operating on the workspace page
+        const inputIdsList = ['customer_name', 'phone', 'model', 'IMEI', 'purchase_date', 'cus_error', 'error_detail', 'engineer_name'];
+        inputIdsList.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('input', checkBtnValidation);
+                el.addEventListener('change', checkBtnValidation);
+            }
+        });
+        checkBtnValidation();
+
+        const creationForm = document.getElementById("create_repair_ticket_form");
+
+        // Catch the value of the clicked submit button before the form event fires
+        if (creationForm) {
+            creationForm.querySelectorAll('button[type="submit"]').forEach(button => {
+                button.addEventListener("click", function() {
+                    currentActionValue = this.value; 
+                });
+            });
+
+            // Process form submission asynchronously using the Global Pipeline Fetch function
+            creationForm.addEventListener("submit", function (event) {
+                event.preventDefault();
+                
+                const formData = new FormData(this);
+
+                // Safely extracts the string path directly out of the HTML attribute definitions
+                let targetUrl = "/repair_ticket_create"; // Secure fallback default string
+
+                // Define options configuration matching global gateway requirements
+                const requestOptions = {
+                    method: "POST",
+                    body: formData
+                };
+
+                // --- PIPELINE REFACTOR CORE INTEGRATION ---
+                // Route submission parameters through unique global fetch engine
+                sendServerRequest(
+                    targetUrl, 
+                    requestOptions, 
+                    // Success Callback Route
+                    function(data) {
+                        // Success notification action
+                        if (data.status === 'success'){
+                            showModal(data.status, data.message, null, function() {
+                                // Redirect home or reload list after the second OK click
+                                if (data.redirect) window.location.href = data.redirect;
+                            });
+                        }
+
+                        if (data.status === 'error'){
+                            showModal(data.status, data.message, null, function() {
+                                // Redirect home or reload list after the second OK click
+                                if (data.redirect) window.location.href = data.redirect;
+                            });
+                        }
+                        
+                    },
+                    // Error Callback Route (Handles explicit database validation issues like 400 Bad Requests)
+                    function(errData) {
+                        showModal(errData.status || "error", errData.message || "An error occurred.");
+                    }
+                );
+            });
+        }
+    });
+
+</script>
+
+{% endblock %}

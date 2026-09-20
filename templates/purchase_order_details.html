@@ -1,0 +1,673 @@
+{% extends "layout.html" %} 
+
+{% block title %} 
+    Purchase Order Details 
+{% endblock %} 
+
+{% block main %}
+    <h2>Purchase Order Details</h2>
+    <br>
+    <div class="border border-dark-subtle border-3 rounded-3 py-3">
+        <div class="me-3 ms-3 d-flex">
+            <h5 class="my-auto">Purchase Order Details: {{ order.po_id }}</h5> 
+            {% if ((((order.status == "PENDING" or order.status == "RECEIVED") and (session['user_role']  == "0" or session['user_role']  == "1"))) or order.status == "APPROVED")%}
+                <div class="ms-auto">
+                    <button class="btn btn-primary btn-sm" id="updateStatusBtn"  type="button" onclick="executeUpdateStatus()">Update Status</button>
+                    {% if session['user_role']  == "0" or session['user_role']  == "1" %}
+                        <button class="btn btn-danger btn-sm" id="cancelBtn" type="button" onclick="executeCancelOrder()">Cancel Order</button>
+                    {% endif %}
+                </div> 
+            {% endif %}
+
+        </div>
+        <hr class="opacity-0">
+        <div class="row row-cols-2 row-cols-lg-4 g-3 mx-3 justify-content-center">
+            <!-- Card 1 -->
+            <div class="col">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title text-muted small uppercase">Merchat Name</h5>
+                        <h2 class="card-text fw-normal fs-3 mb-0">{{ order.merchant }}</h2>
+                    </div>
+                </div>
+            </div>
+            <!-- Card 2 -->
+            <div class="col">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title text-muted small uppercase">Total Inventory Amount</h5>
+                        <h2 class="card-text fw-normal fs-3 mb-0">MMK {{ total_cost }}</h2>
+                    </div>
+                </div>
+            </div>
+            <!-- Card 3 -->
+            <div class="col">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title text-muted small uppercase">Current Status </h5>
+                        <h2 class="card-text fw-normal fs-3 mb-2 {% if order.status == 'CANCELLED' %}text-danger{% endif %} {% if order.status == 'APPROVED' %}text-success{% endif %}">{{ order.status }}</h2>
+                    </div>
+                </div>
+            </div>
+            <!-- Card 4 -->
+            <div class="col">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title text-muted small uppercase">Created Time </h5>
+                        <h2 class="card-text fw-normal fs-3 mb-2">{{ order.created_at }}</h2>
+                    </div>
+                </div>
+            </div>
+            <!-- Card 5 -->
+            <div class="col">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title text-muted small uppercase">Created By</h5>
+                        <h2 class="card-text fw-normal fs-3 mb-2">{{ order.created_name or "N/A" }}</h2>
+                        <h2 class="card-text fw-normal fs-5 mb-0">{% if order.status == "PENDING" %}Time: {{ order.updated_at }}{% endif %}</h2>
+                    </div>
+                </div>
+            </div>
+            <!-- Card 6 -->
+            <div class="col">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title text-muted small uppercase">Approved by</h5>
+                        <h2 class="card-text fw-normal fs-3 mb-2">{{ order.approved_name or "Not Approved yet" }}</h2>
+                        <h2 class="card-text fw-normal fs-5 mb-0">{% if order.status == "APPROVED" %}Time: {{ order.updated_at }}{% endif %}</h2>
+                    </div>
+                </div>
+            </div>
+            <!-- Card 7 -->
+            <div class="col">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title text-muted small uppercase">Received by</h5>
+                        <h2 class="card-text fw-normal fs-3 mb-2">{{ order.received_name or "Not Received yet" }}</h2>
+                        <h2 class="card-text fw-normal fs-5 mb-0">{% if order.status == "RECEIVED" %}Time: {{ order.updated_at }}{% endif %}</h2>
+                    </div>
+                </div>
+            </div>
+            <!-- Card 8 -->
+            <div class="col">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title text-muted small uppercase">Completed by</h5>
+                        <h2 class="card-text fw-normal fs-3 mb-2">{{ order.completed_name or "Not Completed yet" }}</h2>
+                        <h2 class="card-text fw-normal fs-5 mb-0">{% if order.status == "COMPLETED" or order.status == "CANCELLED" %}Time: {{ order.updated_at }}{% endif %}</h2>
+                    </div>
+                </div>
+            </div>
+        </div>        
+    </div>
+    <hr class="opacity-0">
+    <div class="border border-dark-subtle border-3 rounded-3 py-3">
+        <div class="me-3 ms-3 d-flex gap-3">
+            <h5 class="my-auto">Purchase Order Items</h5>
+            {% if order.status == "APPROVED" %}
+                <div class="ms-auto">
+                    <button class="btn btn-primary btn-sm" id="receiveItemBtn"  type="button" onclick="executeSaveItems()">Receive All Items</button>
+                {% if session['user_role']  == "0" or session['user_role']  == "1" %}
+                    <button class="btn btn-primary btn-sm" id="modifyReceiveItemBtn"  type="button" onclick="executeModifyReceiveItems()">Modify Receive Items</button>
+                    <button class="btn btn-secondary btn-sm" id="saveItemBtn"  type="button" onclick="executeSaveItems()" style="display: none;">Save Items</button>
+                {% endif %}
+                </div> 
+            {% endif %}       
+        </div>
+        <hr class="opacity-0">
+        <div class="table-responsive mx-3">
+            <table class="table table-bordered table-striped">
+                <thead class="thead-light">
+                    <tr>
+                        <th style="width: 3%" >No</th>
+                        <th>Code</th>
+                        <th>Name</th>
+                        <th>Model</th>
+                        <th>Unit Price</th>
+                        {% if order.status == "PENDING"%}<th style="width: 8%">Stock Quantity</th>{% endif %}
+                        {% if order.status != "PENDING"%}<th style="width: 8%">Order Quantity</th>{% endif %}
+                        {% if not order.status == "PRNDING" %}<th style="width: 8%">Received Quantity</th>{% endif %}
+                        <th>Total Price</th>
+                    </tr>
+                </thead> 
+                <tbody id="po_itemsTableBody">    
+                        <tr class="align-middle"></tr>
+                            <!-- JavaScript will write td items here dynamically -->
+                        </tr>
+                </tbody>
+                <tfoot id="table_footer">
+                    <tr class="fw-bold align-middle">
+                        <td colspan="7" class="text-end">Grand Total:</td>
+                        <td class="text-end text-primary" id="grand_total">MMK 0.00</td>
+                    </tr>
+                </tfoot>               
+            </table>
+        </div>
+        <div class="d-flex justify-content-center mt-3">
+            <nav aria-label="Page navigation">
+                <ul id="tablePaginationElement" class="pagination pagination-sm mb-0">
+                    <!-- JavaScript will write items here dynamically -->
+                </ul>
+            </nav>
+        </div>      
+    </div>
+
+{% endblock %}
+
+{% block scripts %}
+
+    <script>
+
+        let status = "{{ order.status }}";
+        let po_items_length = null;
+        let po_id = "{{ order.po_id }}";
+
+        // function to execute update status
+        function executeUpdateStatus() {
+            // Implementation for updating status
+            const tbody = document.getElementById('po_itemsTableBody');
+            if (!tbody) return;
+
+            const rows = tbody.querySelectorAll('tr');
+
+            // --- SAFETY CHECK A: Ensure the item table isn't empty or no items in purchase Order ---
+            if (po_items_length === 0) {
+                if (typeof showModal === "function") {
+                    showModal("error", "Submission Blocked: The purchase Order that does not have items cannot be approved. PLEASE CANCEL THE ORDER!!!");
+                } else {
+                    alert("The purchase Order that does not have items cannot be approved!!!");
+                }
+                return;
+            }
+
+            // --- SAFETY CHECK B: Ensure the item table isn't mismatch ---
+            if (rows.length !==  po_items_length) {
+                if (typeof showModal === "function") {
+                    showModal("error", "Submission Blocked: Order items code MISMATCH!!! Please reload the page");
+                } else {
+                    alert("Order items code MISMATCH!!! Please reload the page.");
+                }
+                return;
+            }
+
+            // Data storage containers for our payload and duplicate tracking loops
+            const inventoryItemsPayload = [];
+
+            // =========================================================================
+            // 2. PARSE AND EXTRACT ROW-BY-ROW MATRIX VALUES FROM HTML COMPONENT
+            // =========================================================================
+            rows.forEach((row) => {
+                
+                // Read individual cell parameters cleanly out of the DOM table tree layout
+                const cells = row.querySelectorAll('td');
+                if (cells.length < 8) return; // Skip broken rows safely
+
+                const itemCode  = cells[1].innerText.trim();
+                const orderQuantityInput = cells[6].querySelector('input');
+                let orderQuantity = null;
+                if (orderQuantityInput){
+                    orderQuantity = parseInt(orderQuantityInput.value) || 0;
+                } else {
+                    orderQuantity = cells[6].innerText.trim();
+                }
+                
+                // Package the row into a standardized dataset transfer dictionary object
+                inventoryItemsPayload.push({
+                    "po_id": po_id,
+                    "code": itemCode,
+                    "orderQuantity": orderQuantity,
+                    "status" : status,
+                });
+            });
+
+            // Convert our structured inventory objects array matrix into a unified JSON string payload wrapper
+            const requestOptions = {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    "items": inventoryItemsPayload
+                })
+            };
+
+            // Append the compiled query parameters directly onto target route location link
+            const targetRoutingUrl = "/update_POID";
+
+            // Open dialog modal popup first to alert the user.
+            // The fourth argument passes an onCloseCallback function that runs ONLY after clicking OK!
+            showModal(
+                "warning", 
+                "You are about to UPDATE the Purchase Order. Please double check the INVENTORY AMOUNT. The action cannot be reversible. Click OK to process.", 
+                null, // No employee data structure object needed for warning headers
+                // --- THE ONCLOSE OK CLICK CALLBACK ENGINE ---
+                function() {
+                    // This block executes ONLY after the user clicks the modal's OK button
+                    sendServerRequest(
+                        targetRoutingUrl, 
+                        requestOptions, 
+                        function(data) {
+                            // Once backend responds successfully, show final success confirmation
+                            if (data.status === "success"){
+                                showModal(data.status, data.message, null, function() {
+                                    // Redirect home or reload list after the second OK click
+                                    if (data.redirect) window.location.href = data.redirect;
+                                });
+                            }
+                            
+                        },
+                        function(errData) {
+                            showModal(errData.status || "error", errData.message || "Deactivation failed.");
+                            console.log(data.redirect)
+                        }
+                    );
+                }
+            );
+
+        }
+
+        // function to cancel order
+        function executeCancelOrder() {
+
+            console.log(CURRENT_USER_ROLE_TYPE)
+
+            const isManagerOrAdmin = ((String(CURRENT_USER_ROLE_TYPE) === "0") || (String(CURRENT_USER_ROLE_TYPE) === "1"))
+
+            if (!isManagerOrAdmin) {
+                if (typeof showModal === "function") {
+                    showModal("error", "Submission Blocked: You do not have permission to cancel the order");
+                } else {
+                    alert("You do not have permission to update the items");
+                }
+                return;
+            }
+
+            const tbody = document.getElementById('po_itemsTableBody');
+            if (!tbody) return;
+
+            const rows = tbody.querySelectorAll('tr');
+
+            const inventoryItemslist = [];
+
+            rows.forEach((row) => {
+                
+                const cells = row.querySelectorAll('td');
+                if (cells.length < 8) return; // Skip broken rows safely
+
+                const itemCode  = cells[1].innerText.trim();
+
+                inventoryItemslist.push({
+                    "code": itemCode,
+                });
+            });
+
+            const itemsPayload = [];
+            itemsPayload.push({
+                "po_id": po_id,
+                "items_length": po_items_length,
+                "status":status,
+                "items": inventoryItemslist,
+            })
+
+            // Convert our structured inventory objects array matrix into a unified JSON string payload wrapper
+            const requestOptions = {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    "items": itemsPayload
+                })
+            };
+
+            // Append the compiled query parameters directly onto target route location link
+            const targetRoutingUrl = "/cancel_POID";
+
+            // Open dialog modal popup first to alert the user.
+            // The fourth argument passes an onCloseCallback function that runs ONLY after clicking OK!
+            showModal(
+                "warning", 
+                "You are about to cancel the Purchase Order. The action cannot be reversible. Click OK to process.", 
+                null, // No employee data structure object needed for warning headers
+                // --- THE ONCLOSE OK CLICK CALLBACK ENGINE ---
+                function() {
+                    // This block executes ONLY after the user clicks the modal's OK button
+                    sendServerRequest(
+                        targetRoutingUrl, 
+                        requestOptions, 
+                        function(data) {
+                            // Once backend responds successfully, show final success confirmation
+                            if (data.status === "success"){
+                                showModal(data.status, data.message, null, function() {
+                                    // Redirect home or reload list after the second OK click
+                                    if (data.redirect) window.location.href = data.redirect;
+                                });
+                            }
+                            if (data.status === "error"){
+                                showModal(data.status, data.message, null, function() {
+                                    // Redirect home or reload list after the second OK click
+                                    if (data.redirect) window.location.href = data.redirect;
+                                });
+                            }
+                        },
+                        function(errData) {
+                            showModal(errData.status || "error", errData.message || "Deactivation failed.");
+                        }
+                    );
+                }
+            );
+        }
+
+        //execute receive items
+        function executeModifyReceiveItems(){
+
+            const tbody = document.getElementById('po_itemsTableBody');
+            if (!tbody) return;
+
+            const modifyReceiveItemBtn = document.getElementById("modifyReceiveItemBtn");
+            const receiveItemBtn = document.getElementById("receiveItemBtn")
+            const saveItemBtn = document.getElementById('saveItemBtn');
+
+            const rows = tbody.querySelectorAll('tr');
+
+            rows.forEach((row) => {
+                
+                const cells = row.querySelectorAll('td');
+                if (cells.length < 8) return; // Skip broken rows safely
+
+                const quantityCell = row.cells[6];
+                const quantityCellValue = quantityCell.innerText.trim();
+                const quantity = row.cells[5].innerText.trim();
+                const isNotEdited = quantityCellValue == 0 || quantity == quantityCellValue;
+                
+                const unit_price = cells[4].innerText.replace('MMK', '').replace(/,/g, '').trim()
+                quantityCell.innerHTML=`
+                    <input type="number" 
+                    class="form-control form-control-sm order-quantity" 
+                    max="${quantity}"
+                    value="${isNotEdited ? `${quantity}` : `${quantityCellValue}`}"
+                    name="order_quantity"
+                    data-price="${unit_price}"
+                    oninput="updateRowTotal(this)"> 
+                `;   
+            });
+
+            if (receiveItemBtn){
+                receiveItemBtn.classList.add("disabled");
+                receiveItemBtn.style.display = 'none';
+            }
+            if (modifyReceiveItemBtn){
+                modifyReceiveItemBtn.classList.add("disabled");
+                modifyReceiveItemBtn.style.display = 'none';
+            }
+            if (saveItemBtn){
+                saveItemBtn.style.display = 'inline-block';
+            }
+        }
+
+        // function to save items
+        function executeSaveItems() {
+
+            const tbody = document.getElementById('po_itemsTableBody');
+            if (!tbody) return;
+
+            const modifyReceiveItemBtn = document.getElementById("modifyReceiveItemBtn");
+            const receiveItemBtn = document.getElementById("receiveItemBtn")
+            const saveItemBtn = document.getElementById('saveItemBtn');
+
+            const rows = tbody.querySelectorAll('tr');
+
+            rows.forEach((row) => {
+                
+                const cells = row.querySelectorAll('td');
+                if (cells.length < 8) return; // Skip broken rows safely
+
+                const quantityCell = row.cells[6];
+                const quantityCellInput = row.cells[6].querySelector('input');
+                const quantity = row.cells[5].innerText.trim();
+                if (quantityCellInput){
+                    const quantityCellInputValue = (quantityCellInput.value || "0")
+                    
+                    quantityCell.innerHTML=`${quantityCellInputValue || ''}`;
+                }
+                else {
+                    quantityCell.innerHTML=`${quantity || ''}`;
+                }
+                   
+            });
+            
+            if (receiveItemBtn){
+                receiveItemBtn.classList.add("disabled");
+                receiveItemBtn.style.display = 'none';
+            }
+            if (modifyReceiveItemBtn){
+                modifyReceiveItemBtn.classList.remove("disabled");
+                modifyReceiveItemBtn.style.display = 'inline-block';
+            }
+            if (saveItemBtn){
+                saveItemBtn.style.display = 'none';
+            }
+            
+        }
+
+        // ==========================================
+        // 2. pagination element rendering
+        // ==========================================
+        /**
+         * Renders the HTML button layout controls dynamically underneath the data grids.
+         * @param {object} metadata - Holds pagination counts (current_page, total_pages, total_records)
+         */
+        function renderPaginationControls(metadata) {
+            const paginationUl = document.getElementById('tablePaginationElement');
+            if (!paginationUl) return;
+
+            // --- CONDITION LOOK: Hide pagination entirely if total records are less than or equal to 10 ---
+            if (!metadata || metadata.total_pages <= 1) {
+                paginationUl.innerHTML = ''; // Clears container layout out of sight
+                return;
+            }
+
+            let htmlMarkup = '';
+
+            // 1. Build the "Previous" directional control element button
+            const isPrevDisabled = metadata.current_page === 1;
+            htmlMarkup += `
+                <li class="page-item ${isPrevDisabled ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="changeTablePage(${metadata.current_page - 1}, event)" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+            `;
+
+            // 2. Loop through and draw sequential numeric page numbers
+            for (let i = 1; i <= metadata.total_pages; i++) {
+                const isActive = metadata.current_page === i;
+                htmlMarkup += `
+                    <li class="page-item ${isActive ? 'active' : ''}">
+                        <a class="page-link" href="#" onclick="changeTablePage(${i}, event)">${i}</a>
+                    </li>
+                `;
+            }
+
+            // 3. Build the "Next" directional control element button
+            const isNextDisabled = metadata.current_page === metadata.total_pages;
+            htmlMarkup += `
+                <li class="page-item ${isNextDisabled ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="changeTablePage(${metadata.current_page + 1}, event)" aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+            `;
+
+            paginationUl.innerHTML = htmlMarkup;
+        }
+
+        /** Function called when a user selects a page index button link element */
+        function changeTablePage(targetPageNumber, event) {
+            if (event) event.preventDefault();
+            // Fire search routine passing along targeted page tracking arguments
+            executepo_itemsSearch(targetPageNumber);
+        }
+
+        // ==========================================
+        // 3. PO-items search and table rendering
+        // ==========================================
+
+        function executepo_itemsSearch(pageNumber = 1) {
+            currentActivePage = pageNumber;
+
+            const urlParams = new URLSearchParams();
+            urlParams.append('page', currentActivePage); // Append targeted limit mapping page key
+
+            urlParams.append('po_id', po_id); // Append the purchase order ID to the
+
+            const targetUrl = `/search_po_items/?${urlParams.toString()}`;
+
+            // Dispatch the network fetch request package over your dynamic universal gateway
+            sendServerRequest(targetUrl, function(data) {
+                if (data.status === "success") {
+                    // A. Update table row contents matching current 10-row dataset layout array
+                    renderDynamicTableRows(data.po_items);
+                    
+                    // B. Recalculate and render the pagination controls underneath
+                    renderPaginationControls(data.pagination);
+
+                } else {
+                    showModal("error", data.message || "Query indexing operation failed.");
+                }
+            });
+        }
+
+        // ==========================================
+        // 4. DYNAMIC TABLE GENERATION BUILDER
+        // ==========================================
+        function renderDynamicTableRows(po_itemsArray) {
+            const tbody = document.getElementById('po_itemsTableBody');
+            if (!tbody) return;
+
+            // Clear existing inner markup completely to make room for fresh search matches
+            tbody.innerHTML = '';
+
+            // insert po_items length for further purposer
+            po_items_length = po_itemsArray.length;
+
+            // Handle empty results display state tracking constraints
+            if (!po_itemsArray || po_itemsArray.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="9" class="text-center text-muted py-4 fw-medium">
+                            No items are selected in your purchase order.
+                        </td>
+                    </tr>`;
+                // insert po_items length for further purposer
+                po_items_length = po_itemsArray.length;
+                return;
+            }
+
+            const isPending = (status  === 'PENDING')
+            const isEditable = (isPending && (CURRENT_USER_ROLE_TYPE === "1" || CURRENT_USER_ROLE_TYPE === "0"));
+            const isApproved = (status === 'APPROVED' || status === 'RECEIVED' || status === 'COMPLETED')
+
+            // Process elements one by one from the array stream
+        po_itemsArray.forEach((po_items, index) => {
+            const row = document.createElement('tr');
+            row.className = "align-middle";
+
+            // Ensure price is a valid number for calculations
+            const unit_price = parseFloat(po_items.unit_price) || 0;
+            
+            // Injecting the data rows into layout slots using template literal string values
+            row.innerHTML = `
+                <td class="text-center" style="width: 3%;">${index + 1}</td>
+                <td>${po_items.code || ''}</td>
+                <td>${po_items.name || ''}</td>
+                <td>${po_items.model || ''}</td>
+                <td class="text-end fw-semibold">
+                    MMK ${(parseFloat(unit_price) || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                </td>
+                <td>${isApproved ? `${po_items.qty_bought || '0'}` : `${po_items.quantity || '0'}`}</td>
+                <td id="quantity">
+                    ${isApproved ? `${po_items.qty_received || '0'}
+                    ` : `${isEditable ? `
+                    <input type="number" 
+                        class="form-control form-control-sm order-quantity" 
+                        min="${po_items.qty_bought}" 
+                        value="${po_items.qty_bought || '0'}"
+                        name="order_quantity"
+                        data-price="${unit_price}"
+                        oninput="updateRowTotal(this)"> 
+                        ` : `
+                        ${po_items.qty_bought || '0'}`}`
+                    }
+                </td>
+                <td class="text-end fw-semibold row-total" data-raw-total="${parseFloat(po_items.total_price) || 0}">
+                    MMK ${parseFloat(po_items.total_price).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'}
+                </td>
+            `;
+                tbody.appendChild(row);
+                updateGrandTotal(); // Update grand total after each row is added
+            });
+        }
+
+        // function to update the total price for a row when the order quantity changes
+        function updateRowTotal(inputElement) {
+            const price = parseFloat(inputElement.getAttribute('data-price')) || 0;
+            const max = parseFloat(inputElement.getAttribute('max'))
+            const quantity = parseFloat(inputElement.value) || 0;
+            const saveItemBtn = document.getElementById('saveItemBtn');
+
+            if(max){
+                if(quantity > max){
+                    showModal("error", "Input values is greater than original values. Please insert lesser values!!!");
+                    inputElement.classList.add("input-error");
+                    saveItemBtn.classList.add("disabled")
+                    return
+                }
+            }
+
+            const total = price * quantity;
+            inputElement.classList.remove("input-error");
+            saveItemBtn.classList.remove("disabled")
+            
+            // Find the total cell in the same row
+            const row = inputElement.closest('tr');
+            const totalCell = row.querySelector('.row-total');
+            
+            // Update the display
+            totalCell.setAttribute('data-raw-total', total);
+            totalCell.textContent = `MMK ${total.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            
+            // Recalculate grand total
+            updateGrandTotal();
+        }
+
+        // function to update the grand total for all rows
+        function updateGrandTotal() {
+            let grandTotal = 0;
+            
+            // Find the specific container by its ID string
+            const specificTbody = document.getElementById('po_itemsTableBody');
+            if (!specificTbody) return;
+            
+            // Only query .row-total elements inside this specific tbody
+            const totalCells = specificTbody.querySelectorAll('.row-total');
+            
+            totalCells.forEach(cell => {
+                const value = parseFloat(cell.getAttribute('data-raw-total')) || 0;
+                grandTotal += value;
+            });
+            
+            // Looks for a display element bound to this specific target body naming scheme
+            const grandTotalDisplay = document.getElementById(`grand_total`);
+            if (grandTotalDisplay) {
+                grandTotalDisplay.textContent = `MMK ${grandTotal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            executepo_itemsSearch();
+        });
+
+    </script>
+
+{% endblock %}

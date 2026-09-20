@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="initial-scale=1, width=device-width">
+
+    <!-- http://getbootstrap.com/docs/5.3/ -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
+        crossorigin="anonymous"></script>
+
+    <link href="/static/styles.css" rel="stylesheet">
+    <title>Service Management System: {% block title %}{% endblock %}</title>
+</head>
+
+<body class="combined-pattern-screen" style="font-family: Georgia, serif;">
+    {% if session["user_id"] %}
+    <nav class="bg-dark sticky-top navbar navbar-expand-sm navbar-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">
+                <img src="/static/img/logo.png" alt="logo" width="45" height="auto"
+                    class="d-inline-block align-text-center"></a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar"
+                aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbar">
+                <ul class="navbar-nav me-auto mt-1">
+                    <li class="nav-item"><a class="nav-link" href="/employee">Employee</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/service_center">Service Center</a></li>
+                    <li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#" role="button"
+                            data-bs-toggle="dropdown" aria-expanded="false">Tickets</a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="/repair_ticket">Repair Tickets</a></li>
+                            <li><a class="dropdown-item" href="#">DOA/DAP Claim</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#" role="button"
+                            data-bs-toggle="dropdown" aria-expanded="false">Inventory</a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="/inventory_details">Inventory Details</a></li>
+                            <li><a class="dropdown-item" href="/inventory_management">Inventory Management</a></li>
+                            <li><a class="dropdown-item" href="/purchase_order">Purchase Order</a></li>
+                            <li><a class="dropdown-item" href="#">Stock Transfer</a></li>
+                            <li><a class="dropdown-item" href="#">Transaction Search</a></li>
+                        </ul>
+                    </li>
+                </ul>
+                <ul class="navbar-nav ms-auto mt-1">
+                    <li class="nav-item"><a class="nav-link" href="/account">Account</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/logout">Log Out</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    {% endif %}
+    <main class="container py-3">
+        {% block main %}{% endblock %}
+    </main>
+    <div class="modal fade" id="messageModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modal-title"></h5>
+                </div>
+                <div class="modal-body">
+                    <p id="modalMessage"></p>
+                    <div id="employeeDetails" style="display: none;">
+                        <!-- title -->
+                        <div class="row mb-2">
+                            <h5 id="modal-emp-title"></h5>
+                        </div>
+
+                        <!-- Field 1: NRC -->
+                        <div class="row mb-2">
+                            <div class="col-5 col-sm-4 fw-bold text-secondary">NRC</div>
+                            <div class="col-auto px-0">:</div>
+                            <div id="modal-nrc" class="col text-dark ps-2"></div>
+                        </div>
+
+                        <!-- Field 2: Phone -->
+                        <div class="row mb-2">
+                            <div class="col-5 col-sm-4 fw-bold text-secondary">Phone</div>
+                            <div class="col-auto px-0">:</div>
+                            <div id="modal-phone" class="col text-dark ps-2"></div>
+                        </div>
+
+                        <!-- Field 3: Father Name -->
+                        <div class="row mb-2">
+                            <div class="col-5 col-sm-4 fw-bold text-secondary">Father Name</div>
+                            <div class="col-auto px-0">:</div>
+                            <div id="modal-father" class="col text-dark ps-2"></div>
+                        </div>
+
+                        <!-- Field 4: Address -->
+                        <div class="row mb-0">
+                            <div class="col-5 col-sm-4 fw-bold text-secondary">Address</div>
+                            <div class="col-auto px-0">:</div>
+                            <div id="modal-address" class="col text-dark ps-2"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" id="modal-ok-btn" class="btn btn-primary" data-bs-dismiss="modal" onclick="handleModalOkClick()">OK</button>
+                    <button type="button" id="modal-cancel-btn" class="btn btn-secondary" data-bs-dismiss="modal" style="display: none;">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="text-center">
+        <p>Copyright &#169; Kaung Htet Oo @Kai</p>
+    </footer>
+    <script>
+
+        // injects the active Jinja session ID securely into JavaScript memory on page load
+        const CURRENT_USER_ID = "{{ session.get('user_id', '') }}";
+        const CURRENT_USER_CENTER_ID = "{{ session.get('center_id', '') }}";
+        const CURRENT_USER_ROLE_TYPE = "{{ session.get('user_role', '') }}";
+        // Global variable to hold the active modal callback action safely across functions
+        let activeModalCallback = null;
+
+        /**
+         * Globally triggers and styles the Bootstrap modal layout.
+         * @param {string} type - Status keyword ('success', 'error', 'warning').
+         * @param {string} message - Text body string to display.
+         * @param {object|null} employeeData - Optional SQLite employee object data fields.
+         * @param {function} onCloseCallback - Action to execute ONLY after clicking OK.
+         */
+        function showModal(type, message, employeeData = null, onCloseCallback = null) {
+            const titleElement = document.getElementById("modal-title");
+            const messageElement = document.getElementById("modalMessage");
+            const modalElement = document.getElementById("messageModal");
+            const detailsContainer = document.getElementById("employeeDetails");
+            const cancelBtn = document.getElementById("modal-cancel-btn");
+
+            // --- 1. LAYOUT COLOR CLEANUP ---
+            titleElement.classList.remove('text-success', 'text-danger', 'text-warning');
+
+            // --- 2. DYNAMIC TITLE MAPPING ---
+            if (type === "success") {
+                titleElement.innerText = "Success";
+                titleElement.classList.add('text-success');
+                if (cancelBtn) cancelBtn.style.display = "none"; // Hide on success
+            } else if (type === "error") {
+                titleElement.innerText = "Error Occurred";
+                titleElement.classList.add('text-danger');
+                if (cancelBtn) cancelBtn.style.display = "none"; // Hide on error
+            } else if (type === "warning") {
+                titleElement.innerText = "Warning";
+                titleElement.classList.add('text-warning');
+                if (cancelBtn) cancelBtn.style.display = "inline-block"; // SHOW CANCEL BUTTON FOR waring
+            } else {
+                titleElement.innerText = type;
+                if (cancelBtn) cancelBtn.style.display = "none";
+            }
+
+            messageElement.innerText = message;
+
+            // --- 3. DYNAMIC EMPLOYEE GRID CONTROLLER ---
+            if (employeeData) {
+                // fallback mapping expression syntax logic 
+                const empIdStr = employeeData.id || "Unknown";
+                document.getElementById("modal-emp-title").innerText = `More personal detail for : ${empIdStr}`;
+                
+                document.getElementById("modal-nrc").innerText = employeeData.NRC || "N/A";
+                document.getElementById("modal-phone").innerText = employeeData.phone || "N/A";
+                document.getElementById("modal-father").innerText = employeeData.father_name || "N/A";
+                document.getElementById("modal-address").innerText = employeeData.address || "N/A";
+                // Make the aligned grid data container visible
+                detailsContainer.style.display = "block";
+            } else {
+                // Hide details block entirely for standard success/error popups
+                detailsContainer.style.display = "none";
+            }
+
+            activeModalCallback = onCloseCallback;
+
+            const modalInstance = new bootstrap.Modal(modalElement);
+            modalInstance.show();
+        }
+
+
+        /**
+         * Global router method attached directly to the 'OK' button click action.
+         * Clears memory tracking state BEFORE execution to prevent
+         * back-to-back modal popup callback cancellation bugs.
+         */
+        function handleModalOkClick() {
+            // 1. Verify if a valid custom callback function exists in memory
+            if (activeModalCallback && typeof activeModalCallback === "function") {
+                
+                // 2. Extract the function reference variable local to this scope box
+                const localExecutionCallback = activeModalCallback;
+                
+                // 3. Clear global tracking memory IMMEDIATELY so new modals can safely use it
+                activeModalCallback = null;
+                
+                // 4. Safely execute the network fetch dispatch call or routing action
+                localExecutionCallback();
+            } else {
+                // Fallback safety cleanup mapping rule if clicked on a standard static message popup
+                activeModalCallback = null;
+            }
+        }
+
+        /**
+         * Global standardized async gateway connecting layout actions with the Flask backend engine.
+         * Dynamically accommodates both 2-argument (old GET) and 3-argument (new POST) syntax calls seamlessly.
+         * @param {string} url - Target URL path complete with encoded parameter matrices.
+         * @param {object|function} optionsOrCallback - Either the fetch lifecycle configuration dictionary OR the success handler function.
+         * @param {function|null} optionalCallback - The success processing handler function (used only for 3-argument POST calls).
+         */
+        // ==========================================
+        // GLOBAL REUSABLE PIPELINE FETCH FUNCTION
+        // ==========================================
+        function sendServerRequest(url, optionsOrCallback, optionalCallback = null) {
+            let fetchOptions = { method: "GET" };
+            let successHandler = null;
+
+            if (typeof optionsOrCallback === "function") {
+                successHandler = optionsOrCallback; 
+            } else {
+                fetchOptions = optionsOrCallback;
+                successHandler = optionalCallback;
+            }
+
+            fetch(url, fetchOptions)
+                .then(response => {
+                    const contentType = response.headers.get("content-type");
+                    const isJson = contentType && contentType.includes("application/json");
+
+                    if (!response.ok) {
+                        if (isJson) {
+                            return response.json().then(errData => {
+                                // 1. Pop open the custom message
+                                showModal(errData.status || "error", errData.message || `Server Error: ${response.status}`);
+                                // if(errData.redirect) window.location.href = errData.redirect;
+                                
+                                // 2. Return an explicitly marker object instead of throwing a message string 
+                                return { __isHandledError: true }; 
+                            });
+                        }
+                        throw new Error(`HTTP Error Status: ${response.status}`);
+                    }
+                    
+                    if (!isJson) {
+                        throw new TypeError("The server did not return valid JSON. Check your Python terminal logs.");
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // 3. If the data object is custom handled error marker, drop execution silently
+                    if (data && data.__isHandledError) {
+                        return; 
+                    }
+
+                    // Otherwise, route the clean JSON data down to the success handler loop normally
+                    if (data && typeof successHandler === "function") {
+                        successHandler(data);
+                    }
+                })
+                .catch(error => {
+                    // This global catch block will now ONLY fire on true network disconnections, cross-origin bugs, or real crashes
+                    console.error("Pipeline failure routing trace:", error);
+                    showModal("error", `Network Pipeline Interrupted: ${error.message}`);
+                });
+        }
+        
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+
+</html>

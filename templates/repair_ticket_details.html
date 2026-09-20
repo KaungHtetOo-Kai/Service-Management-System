@@ -1,0 +1,635 @@
+{% extends "layout.html" %} 
+
+{% block title %} 
+    Repair ticket details
+{% endblock %} 
+
+{% block main %}
+    <h2>Repair Tickets details</h2>
+    <hr class="opacity-0">
+    <div class="border border-dark-subtle border-3 rounded-3 py-3 mx-auto">
+        <div class="me-3 ms-3 d-flex">
+            <h5 class="my-auto">Repair Ticket Details: {{ticket.ticket_id}}</h5>
+            <h5 class="ms-auto">Current Status: {{ticket.status}}</h5> 
+        </div>
+        <hr class="opacity-0">
+        <div class="row row-cols-1 row-cols-lg-3 g-3 mx-3 justify-content-center">
+            <!-- Card 1 -->
+            <div class="col">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-text fw-normal fs-5 mb-3">Customer Infomation</h5>
+                        <h5 class="card-title text-muted small uppercase">Name: {{ticket.customer_name or ''}}</h5>
+                        <h2 class="card-title text-muted small uppercase">Phone: {{ticket.phone or ''}}</h2>
+                        <h2 class="card-title text-muted small uppercase">Level: N/A</h2>
+                        <h2 class="card-title text-muted small uppercase">Dealer: {{ticket.dealer_info or 'N/A'}}</h2>
+                        <h2 class="card-title text-muted small uppercase">Phone: {{ticket.dealer_phone or 'N/A'}}</h2>
+                        <h2 class="card-title text-muted small uppercase">Level: N/A</h2>
+                    </div>
+                </div>
+            </div>
+            <!-- Card 2 -->
+            <div class="col">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-text fw-normal fs-5 mb-3">Device Information</h5>
+                        <h2 class="card-title text-muted small uppercase">Model: {{ticket.model or ''}}</h2>
+                        <h2 class="card-title text-muted small uppercase">IMEI: {{ticket.IMEI or ''}}</h2>
+                        <h2 class="card-title text-muted small uppercase">Physical Condition: {{ticket.physical_condition or 'N/A'}}</h2>
+                        <h2 class="card-title text-muted small uppercase">Warranty Status: {{ticket.warranty_status or 'N/A'}}</h2>
+                        <h2 class="card-title text-muted small uppercase">Purchase Date: {{ticket.purchase_date or 'N/A'}}</h2>
+                        <h2 class="card-title text-muted small uppercase">Left Acc: {{ticket.accessories or 'N/A'}}</h2>
+                    </div>
+                </div>
+            </div>
+            <!-- Card 3 -->
+            <div class="col">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-text fw-normal fs-5 mb-3">Status Details</h5>
+                        <h2 class="card-title text-muted small uppercase">Receive By: {{ticket.received_name or ''}} ({{ticket.received_staff_id or ''}})</h2>
+                        <h2 class="card-title text-muted small uppercase">Receive At: {{ticket.received_date or ''}}</h2>
+                        <h2 class="card-title text-muted small uppercase">Repair By: {{ticket.repair_name or ''}} ({{ticket.repair_staff_id or ''}})</h2>
+                        <h2 class="card-title text-muted small uppercase">Repair At: {{ticket.repair_date or 'Not Repair Yet'}}</h2>
+                        <h2 class="card-title text-muted small uppercase">Complete By: {{ticket.completed_name or ''}} ({{ticket.completed_staff_id or 'Not Complete Yet'}})</h2>
+                        <h2 class="card-title text-muted small uppercase">Complete At: {{ticket.complete_date or 'Not Complete Yet'}}</h2>
+                    </div>
+                </div>
+            </div>     
+        </div>           
+    </div>
+    <hr class="opacity-0">
+    <div class="border border-dark-subtle border-3 rounded-3 py-3" >
+        <div class="me-3 ms-3 d-flex">
+            <h5 class="my-auto">Diagnosis Status</h5>
+            {% if ticket.status == 'Received'%}
+                <div class="ms-auto">
+                    <button class="btn btn-primary btn-sm" id="saveStatusBtn" type="button" onclick="executeSaveStatus()">Save Diagnosis Status</button>
+                </div>
+            {% endif %} 
+        </div>
+        <hr class="opacity-0">
+        <div class="row row-cols-1 row-cols-lg-4 g-3 mx-3 justify-content-center">
+            <div class="col">
+                <label for="cus_error" class="form-label">Customer Mentioned Issue</label>
+                <input type="text" class="form-control" name="cus_error" autocomplete="off" id="cus_error" placeholder="Customer Mentioned Issue" 
+                    value="{{ticket.cus_error or 'N/A'}}" required disabled>
+            </div>
+            <div class="col">
+                <label for="error_detail" class="form-label">Error details (required)</label>
+                <input type="text" class="form-control" name="error_detail" autocomplete="off" id="error_detail" placeholder="Error details" 
+                    value="{{ticket.error_details or 'N/A'}}" required disabled>
+            </div>
+            <div class="col">
+                <label for="repair_code" class="form-label">Repair code (required)</label>
+                <input type="text" class="form-control" name="repair_code" autocomplete="off" id="repair_code" placeholder="Error code" 
+                    {% if ticket.repair_code != '1' %} value="{{ticket.repair_code or ''}}" disabled {%endif%}required>
+            </div>
+            <div class="col">
+                <label for="repair_detail" class="form-label">Diagnosis details (required)</label>
+                <select id="repair_detail" name="repair_detail" class="form-control" {% if ticket.repair_details != "0" %}disabled{%endif%}>
+                    <option value="0" disabled {% if ticket.repair_details == "0" %}selected{%endif%}>Repair Details</option>
+                    <option value="1" {% if ticket.repair_details == "1" %}selected{%endif%}>1. Changed Spareparts</option>
+                    <option value="2" {% if ticket.repair_details == "2" %}selected{%endif%}>2. Service</option>
+                    <option value="3" {% if ticket.repair_details == "3" %}selected{%endif%}>3. Software Update</option>
+                    <option value="4" {% if ticket.repair_details == "4" %}selected{%endif%}>4. No issue Found</option>
+            </select>
+            </div>
+        </div>
+        <hr class="opacity-0">
+        <h5 class="ms-3 my-auto">SparePart and Total Cost details</h5>
+        <hr class="opacity-0">
+        <div class="table-responsive mx-3" style="height: auto; min-height: 190px;">
+            <table class="table table-bordered table-striped">
+                <thead class="thead-light">
+                    <tr>
+                        <th style="width: 3%" >No</th>
+                        <th>Code</th>
+                        <th>Name</th>
+                        <th>Model</th>
+                        <th>Price</th>
+                        <th style="width: 10%">Repair Quantity </th>
+                        <th>Total Cost</th>
+                        {% if not inventory%}
+                            <th style="width: 3%">Action</th>
+                        {% endif %}  
+                    </tr>
+                </thead> 
+                <tbody id="inventoryTableBody">
+                    {% if inventory|length > 0 %}
+                        {% for item in inventory %}
+                            <tr id="currentElement" class="align-middle">
+                                <td class="text-center" style="width: 3%;">{{loop.index}}</td>
+                                <td>{{ item.code }}</td>
+                                <td>{{ item.name }}</td>
+                                <td>{{ item.model }}</td>
+                                <td class="text-end fw-semibold">MMK {{ "{:,.2f}".format(item.price | float) }}</td>
+                                <td>1</td>
+                                <td class="text-end fw-semibold row-total" data-raw-total="{{ item.price }}">
+                                    MMK {{ "{:,.2f}".format(item.price | float) }}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr id="currentElement" class="align-middle">
+                            <td class="text-center" style="width: 3%;">1</td>
+                            <td>
+                                <form class="search-container" action="#" method="GET">
+                                    <div class="search-wrapper">
+                                        <input type="search" id="search-input" class="search-input" placeholder="Search Inventory(Code)" autocomplete="off"/>
+                                        <!-- Clear button to quickly wipe input -->
+                                        <button type="button" id="clear-btn" class="clear-btn" aria-label="Clear search">&times;</button>
+                                    </div>
+                                    <!-- Interactive Dropdown Menu for Live Results -->
+                                    <div id="search-dropdown" class="search-dropdown hidden">
+                                        <ul id="results-list">
+                                        </ul>
+                                    </div>      
+                                </form>
+                            </td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+                    {% endif %}  
+                </tbody>
+                <tfoot id="table_footer">
+                    <tr class="fw-bold align-middle">
+                        <td colspan="6" class="text-end">Grand Total:</td>
+                        <td class="text-end text-primary" id="grand_total">MMK 0.00</td>
+                        {% if not inventory%}
+                            <td></td>
+                        {% endif %}
+                    </tr>
+                </tfoot>               
+            </table>
+        </div>     
+    </div>
+    {% if ticket.status != 'Received'%}
+    <form id="save_ticket_form" method="POST" action="/repair_tickets_details/">
+        <hr class="opacity-0">
+        <div class="border border-dark-subtle border-3 rounded-3 py-3" >
+            <div class="me-3 ms-3 d-flex">
+                <h5 class="my-auto">Return Information</h5>
+                {% if ticket.status == 'Repair_completed'%}
+                    <div class="ms-auto">
+                        <button class="btn btn-primary btn-sm" id="completeBtn" type="submit">Complete the ticket</button>
+                    </div>
+                {%endif%} 
+            </div>
+            <hr class="opacity-0">
+            <input type="hidden" name="ticket_id" id="ticket_id" required>
+            <div class="row row-cols-1 row-cols-lg-4 g-3 mx-3 justify-content-center">
+                <div class="col">
+                    <label for="return_cus_name" class="form-label">Return Customer Name (required)</label>
+                    <input type="text" class="form-control" name="return_cus_name" autocomplete="off" id="return_cus_name" placeholder="Customer Name" 
+                        {% if ticket.return_name %} value="{{ticket.return_name or ''}}" disabled {%endif%} required>
+                </div>
+                <div class="col">
+                    <label for="return_cus_phone" class="form-label">Customer Phone (required)</label>
+                    <input type="text" class="form-control" name="return_cus_phone" autocomplete="off" id="return_cus_phone" placeholder="Customer Phone" 
+                        {% if ticket.return_phone %} value="{{ticket.return_phone or ''}}" disabled {%endif%} required>
+                </div>
+                <div class="col">
+                    <label for="remark" class="form-label">Remark </label>
+                    <input type="text" class="form-control" name="remark" autocomplete="off" id="remark" placeholder="Remark"
+                        {% if ticket.status != 'Repair_completed' %} disabled {%endif%}>
+                </div>
+            </div>         
+        </div>
+    </form>
+    {% endif %}
+{% endblock %}
+
+{% block scripts %}
+
+<script>
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const ticket_id = urlParams.get('ticket-id');
+
+    //executesavestatus
+    function executeSaveStatus(){
+
+        const repairCode = document.getElementById("repair_code").value.trim();
+        const repairDetail = document.getElementById("repair_detail").value.trim();
+
+        if (!repairCode) {
+            if (typeof showModal === "function") {
+                showModal("error", "Submission Blocked: Error Code is empty. Please add Error Code before submission.");
+            } else {
+                alert("Error Code is empty.");
+            }
+            return;
+        }
+        
+        if (repairDetail === '0') {
+            if (typeof showModal === "function") {
+                showModal("error", "Submission Blocked: Diagnosis details is empty. Please add Diagnosis details before submission.");
+            } else {
+                alert("Diagnosis details is empty.");
+            }
+            return;
+        }
+
+        const tbody = document.getElementById('inventoryTableBody');
+        if (!tbody) return;
+
+        const rows = tbody.querySelectorAll('tr');
+
+        if (repairDetail === '1' && rows.length === 1) {
+            if (typeof showModal === "function") {
+                showModal("error", "Submission Blocked: Your Inventory table is empty. Please add at least one inventory item after 'Changed Sparepart' is chosen.");
+            } else {
+                alert("Inventory table is empty.");
+            }
+            return;
+        }
+
+        if (repairDetail !== '1' && rows.length > 1) {
+            if (typeof showModal === "function") {
+                showModal("error", "Submission Blocked: There are inventories at your inventory table. You cannot choose inventory after choosing Diagnosis details other than 'Changed Sparparts'!");
+            } else {
+                alert("There are inventories at your inventory table.");
+            }
+            return;
+        }
+
+        itemPayLoad = [];
+        console.log(ticket_id);
+
+        if (rows.length > 1) {
+            rows.forEach((row) => {
+            const cells = row.querySelectorAll('td');
+            const itemCode = cells[1].innerText.trim();
+                
+                if (itemCode != '') {
+                    itemPayLoad.push({
+                        "ticket_id": ticket_id,
+                        "code": itemCode,
+                        "repair_code": repairCode,
+                        "repair_details" : repairDetail,
+                    });
+                }       
+            });
+
+        } else {
+            itemPayLoad.push({
+                "ticket_id": ticket_id,
+                "repair_code": repairCode,
+                "repair_details" : repairDetail,
+            });
+        }
+
+        const requestOptions = {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                "items": itemPayLoad
+            })
+        };
+
+        const targetRoutingUrl = "/update_ticket";
+
+        showModal(
+            "warning", 
+            "You are about to UPDATE the Repair ticket. The action cannot be reversible. Click OK to process.", 
+            null, 
+            function() {
+                // This block executes ONLY after the user clicks the modal's OK button
+                sendServerRequest(
+                    targetRoutingUrl,
+                    requestOptions,
+
+                    function (data) {
+                        if (data.status === "success") {
+                            if (typeof showModal === "function") {
+                            showModal("success", data.message, null, function () {
+                                if (data.redirect) window.location.href = data.redirect;
+                                });
+                            }
+                        }
+                        if (data.status === "error") {
+                            if (typeof showModal === "function") {
+                                showModal("error", data.message || "Failed to save the Purchase Order. Please try again.");
+                            }
+                            if (data.redirect) window.location.href = data.redirect;
+                        }
+                    }
+                );
+            }
+        );
+    }
+
+    //savebtnvalidation
+    function checkSaveBtnValidation() {
+
+        const saveStatusBtn = document.getElementById("saveStatusBtn");
+        if(!saveStatusBtn) return;
+
+        const customerErrorVal  = document.getElementById('cus_error')    ? document.getElementById('cus_error').value.trim()  : '';
+        const errorDetailVal    = document.getElementById('error_detail') ? document.getElementById('error_detail').value.trim()  : '';
+        const errorCodeVal      = document.getElementById('repair_code')   ? document.getElementById('repair_code').value.trim() : '';
+        const repairDetailVal   = document.getElementById('repair_detail')? document.getElementById('repair_detail').value.trim(): '';
+
+        const isAllFieldsEmpty = (customerErrorVal && errorDetailVal && !errorCodeVal && (repairDetailVal === '0' || repairDetailVal === ''));
+        
+        if (isAllFieldsEmpty) {
+            saveStatusBtn.disabled = true;                // Hard blocks all browser click interaction pathways
+            saveStatusBtn.classList.add('disabled');      // Formally injects Bootstrap's muted disabled opacity look
+        } else {
+            saveStatusBtn.disabled = false;               // Activates the node engine element properties
+            saveStatusBtn.classList.remove('disabled');   // Fully restores interactive colors
+        }
+    }
+
+     //completebtnvalidation
+    function checkCompleteBtnValidation() {
+
+        const completeBtn = document.getElementById("completeBtn");
+        if(!completeBtn) return;
+
+        const returnCustomerVal = document.getElementById('return_cus_name')    ? document.getElementById('return_cus_name').value.trim()  : '';
+        const returnPhoneVal    = document.getElementById('return_cus_phone')   ? document.getElementById('return_cus_phone').value.trim()  : '';
+
+        const isAllFieldsEmpty = (!returnCustomerVal && !returnPhoneVal);
+        
+        if (isAllFieldsEmpty) {
+            completeBtn.disabled = true;                // Hard blocks all browser click interaction pathways
+            completeBtn.classList.add('disabled');      // Formally injects Bootstrap's muted disabled opacity look
+        } else {
+            completeBtn.disabled = false;               // Activates the node engine element properties
+            completeBtn.classList.remove('disabled');   // Fully restores interactive colors
+        }
+    }
+
+    //handle remove items
+    function handleItemRemoval(buttonElement){
+
+        if (!buttonElement) return;
+        const targetRow = buttonElement.closest('tr');
+
+            if (targetRow) {
+            targetRow.remove();
+            }
+        
+        const tbody = document.getElementById("inventoryTableBody");
+        const rows = tbody.querySelectorAll('tr');
+
+        rows.forEach((row, index) => {
+            const noCell = row.querySelector('td:first-child');
+            if (noCell) {
+                noCell.innerText = index + 1;
+            }
+        });
+
+        updateGrandTotal();
+        
+    }
+
+    // function to update the grand total for all rows
+    function updateGrandTotal() {
+        let grandTotal = 0;
+        
+        // Find the specific container by its ID string
+        const specificTbody = document.getElementById('inventoryTableBody');
+        if (!specificTbody) return;
+        
+        // Only query .row-total elements inside this specific tbody
+        const totalCells = specificTbody.querySelectorAll('.row-total');
+        if (!totalCells) return;
+        
+        totalCells.forEach(cell => {
+            const value = parseFloat(cell.getAttribute('data-raw-total')) || 0;
+            grandTotal += value;
+        });
+        
+        // Looks for a display element bound to this specific target body naming scheme
+        const grandTotalDisplay = document.getElementById(`grand_total`);
+        if (grandTotalDisplay) {
+            grandTotalDisplay.textContent = `MMK ${grandTotal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+
+        let codeCheckTimeout = null;
+        const codeInput = document.getElementById("search-input");
+
+        // click event to render the table
+        function renderTable (inventory) {
+
+            const tbody = document.getElementById("inventoryTableBody");
+            if (!tbody || !inventory) return;
+
+            const rowCount = tbody.rows.length;
+
+            if(rowCount > 1){
+                const totalCells = tbody.querySelectorAll('.code');        
+                
+                for (const cell of totalCells) {
+                    const itemCode = cell.innerText.trim();
+                    if (itemCode === inventory.code) {
+                        showModal("error", "Duplicate Item found!");
+                        return; 
+                    }
+                }
+                
+            }
+
+            const row = document.getElementById("currentElement")
+            row.className = "align-middle";
+            row.removeAttribute('id');
+            row.innerHTML = '';
+            
+            row.innerHTML = `
+                <td class="text-center" style="width: 3%;">${rowCount}</td>
+                <td class="code">${inventory.code || ''}</td>
+                <td>${inventory.name || ''}</td>
+                <td>${inventory.model || ''}</td>
+                <td class="text-end fw-semibold">MMK ${parseFloat(inventory.price).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                <td>1</td>
+                <td class="text-end fw-semibold row-total" data-raw-total="${inventory.price}">
+                    MMK ${parseFloat(inventory.price).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                </td>
+                <td class="text-center">
+                    <button type="button" class="btn btn-sm btn-outline-danger border-0 py-0 px-2 fw-bold" 
+                            onclick="handleItemRemoval(this)">
+                        &times;
+                    </button>
+                </td>
+            `;
+
+            tbody.appendChild(row);
+
+            const nextRow = document.createElement('tr')
+            nextRow.className = "align-middle";
+            nextRow.setAttribute('id', 'currentElement')
+            nextRow.innerHTML = `
+                <td class="text-center" style="width: 3%;">${rowCount + 1}</td>
+                <td>
+                    <form class="search-container" action="#" method="GET">
+                        <div class="search-wrapper">
+                            <input type="search" id="search-input" class="search-input" placeholder="Search Inventory(Code)" autocomplete="off"/>
+                            <!-- Clear button to quickly wipe input -->
+                            <button type="button" id="clear-btn" class="clear-btn" aria-label="Clear search">&times;</button>
+                        </div>
+                        <!-- Interactive Dropdown Menu for Live Results -->
+                        <div id="search-dropdown" class="search-dropdown hidden">
+                            <ul id="results-list">
+                            </ul>
+                        </div>      
+                    </form>
+                </td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+            `;
+
+            tbody.appendChild(nextRow);
+            updateGrandTotal();
+            const codeInput = document.getElementById("search-input");
+            if (codeInput) {
+                codeInput.addEventListener("change", codeSearchEngine);
+                codeInput.addEventListener("input", codeSearchEngine);
+            }
+        }
+
+        // inventory Code search engine
+        function codeSearchEngine(){
+
+            const codeInput = document.getElementById("search-input");
+            const searchDropdown = document.getElementById("search-dropdown");
+            const ul = document.getElementById("results-list")
+            if (!codeInput || ! searchDropdown) return;
+
+
+            const codeInputVal = codeInput.value.trim();
+            if (codeInputVal.length === 0) {
+                searchDropdown.classList.add("hidden");
+                return;
+            }
+
+        codeCheckTimeout = setTimeout(() => {
+
+                const urlParams = new URLSearchParams();
+                urlParams.append('center_id', CURRENT_USER_CENTER_ID);
+                urlParams.append('code', codeInputVal)
+                const targetUrl = `/search_inventory/?${urlParams.toString()}`;
+
+                sendServerRequest(
+                    targetUrl,
+                    function(data) {
+
+                        ul.innerHTML = '';    
+
+                        if (data.status === "success"){
+
+                            if (data.inventory.length === 0){
+                                
+                                const li = document.createElement('li');
+                                li.textContent = 'No Record';
+                                
+                                ul.appendChild(li);
+                                searchDropdown.classList.remove("hidden");
+                            }
+                            if (data.inventory.length > 0){
+                                data.inventory.forEach((inventory) => {
+                                    const li = document.createElement('li');
+                                    li.innerHTML = `${inventory.code} | ${inventory.name} | ${inventory.model}`;
+                                    li.addEventListener('click',() => renderTable(inventory))
+                                    ul.appendChild(li);
+                                });
+                                searchDropdown.classList.remove("hidden");
+                            }
+                        }  
+                    }
+                );
+
+            },1000);
+        }
+
+        if (codeInput) {
+            codeInput.addEventListener("change", codeSearchEngine);
+            codeInput.addEventListener("input", codeSearchEngine);
+        }
+
+        const saveInputIdsList = ['cus_error', 'error_detail', 'repair_code', 'repair_detail'];
+        const completeInputIdsList = ['return_cus_name', 'return_cus_phone']
+
+        saveInputIdsList.forEach(id => {
+            const fieldElement = document.getElementById(id);
+            if (fieldElement) {
+                fieldElement.addEventListener('input', checkSaveBtnValidation);
+                fieldElement.addEventListener('change', checkSaveBtnValidation);
+            }
+        });
+        checkSaveBtnValidation();
+
+        completeInputIdsList.forEach(id => {
+            const fieldElement = document.getElementById(id);
+            if (fieldElement) {
+                fieldElement.addEventListener('input', checkCompleteBtnValidation);
+                fieldElement.addEventListener('change', checkCompleteBtnValidation);
+            }
+        });
+        checkCompleteBtnValidation();
+        updateGrandTotal();
+        document.getElementById("ticket_id").value = ticket_id;
+
+        const form = document.getElementById("save_ticket_form");
+
+        if(form){
+            form.addEventListener("submit", async function (event) {
+
+                event.preventDefault();
+
+                const formData = new FormData(this);
+
+                let targetUrl = "/repair_tickets_details/";
+                
+                const requestOptions = {
+                    method: "POST",
+                    body: formData
+                };
+
+                showModal(
+                    "warning", 
+                    "You are about to complete this Repair Ticket. Click OK to confirm and process this change.", 
+                    null, 
+                    // --- THE ONCLOSE OK CLICK CALLBACK ENGINE ---
+                    function() {
+                        // This block executes ONLY after the user clicks the modal's OK button
+                        sendServerRequest(
+                            targetUrl, 
+                            requestOptions, 
+                            function(data) {
+                                // Once backend responds successfully, show final success confirmation
+                                showModal("success", data.message, null, function() {
+                                    // Redirect home or reload list after the second OK click
+                                    if (data.redirect) window.location.href = data.redirect;
+                                });
+                            },
+                            function(errData) {
+                                showModal(errData.status || "error", errData.message || "Operation failed.");
+                            }
+                        );
+                    }
+                );
+
+            });
+        }
+
+    });
+
+</script>
+
+{% endblock %}

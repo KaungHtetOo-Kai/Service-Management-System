@@ -1,0 +1,894 @@
+{% extends "layout.html" %} 
+
+{% block title %} 
+    Create Purchase Order
+{% endblock %} 
+
+{% block main %}
+
+    <h2>Create Purchease Order</h2>
+    <br>
+    <div class="border border-dark-subtle border-3 rounded-3 py-3">
+        <div id="orderDetailDiv" class="me-3 ms-3 d-flex gap-3">
+            <h5 class="my-auto">Create Purchease Order</h5>
+            <input id="merchant" class="border border-dark-subtle rounded-2" name="merchant" type="text" placeholder="Merchant Name" >
+            <div class="ms-auto">
+                <button class="btn btn-primary btn-sm" id="createOrderBtn" type="button" onclick="executeCreateOrderID()">Create Order</button>
+            </div>   
+        </div>
+        <hr style="border: 1px solid; border-color: #212529;">
+        <div class="me-3 ms-3 d-flex gap-3">
+            <h5 class="my-auto">Add Inventory</h5>
+            <div class="ms-auto">
+                <button class="btn btn-secondary btn-sm" id="removeAllBtn"  type="button" onclick="executeRemoveAll()" style="display: none;">Remove All</button>
+                <button class="btn btn-primary btn-sm" id="importExcelBtn" type="button">Import Excel</button>
+            </div>   
+        </div>
+        <br>
+        <div class="row row-cols-2 row-cols-lg-6 gy-3 gx-3 me-3 ms-3 align-items-center justify-content-center">
+            <div class="col-auto">
+                <input id="search_code" class="form-control" name="search_code" autocomplete="off" placeholder="Code" type="text" >
+            </div>
+            <div class="col-auto">
+                <input id="search_name" class="form-control" name="search_name" autocomplete="off" placeholder="Name" type="text" >
+            </div>
+            <div class="col-auto">
+                <input id="search_model" class="form-control" name="search_model" autocomplete="off" placeholder="Phone Model" type="text">
+            </div>
+            <div class="col-auto">
+                <button class="btn btn-primary w-100" id="searchBtn" type="button" onclick="executeInventorySearch()">Search</button>
+            </div>
+            <div class="col-auto">
+                <button class="btn btn-outline-primary w-100" id="addTolistBtn" type="button" onclick="executeAddToList()">Add to List</button>
+            </div>
+        </div>
+        <br>
+        <div class="table-responsive mx-3">
+            <table id="searchInventorytable" class="table table-bordered table-striped">
+                <thead class="thead-light">
+                    <tr>
+                        <th style="width: 3%" >No</th>
+                        <th>Code</th>
+                        <th>Name</th>
+                        <th>Model</th>
+                        <th>Unit Price</th>
+                        <th style="width: 8%">Stock Quantity</th>
+                        <th style="width: 8%">Order Quantity</th>
+                        <th>Total Price</th>
+                        <th style="width: 5%" class="text-center">Action</th>
+                    </tr>
+                </thead> 
+                <tbody id="searchTableBody">    
+                    <!-- JavaScript will write td items here dynamically -->      
+                </tbody>
+                <tfoot id="table_footer">
+                    <tr class="fw-bold align-middle">
+                        <td colspan="7" class="text-end">Grand Total:</td>
+                        <td class="text-end text-primary" id="grand_total_searchTableBody">MMK 0.00</td>
+                        <td></td>
+                    </tr>
+                </tfoot>               
+            </table>   
+        </div>
+        <div class="d-flex justify-content-center mt-3">
+            <nav aria-label="Page navigation">
+                <ul id="searchTablePagination" class="pagination pagination-sm mb-0">
+                    <!-- JavaScript will write items here dynamically -->
+                </ul>
+            </nav>
+        </div>
+    </div>
+    <hr class="opacity-0">
+    <div class="border border-dark-subtle border-3 rounded-3 py-3">
+        <div id="orderDetailDiv" class="me-3 ms-3 d-flex gap-3">
+            <h5 class="my-auto">Purchease Order Items</h5>
+            <div class="ms-auto">
+                <button class="btn btn-primary btn-sm" id="saveOrderBtn" onclick="executeSaveOrder()" type="button" disabled>Save Order</button>
+            </div>   
+        </div>
+        <br>
+        <div class="table-responsive mx-3">
+            <table id="orderInventorytable" class="table table-bordered table-striped">
+                <thead class="thead-light">
+                    <tr>
+                        <th style="width: 3%" >No</th>
+                        <th>Code</th>
+                        <th>Name</th>
+                        <th>Model</th>
+                        <th>Unit Price</th>
+                        <th style="width: 8%">Stock Quantity</th>
+                        <th style="width: 8%">Order Quantity</th>
+                        <th>Total Price</th>
+                        <th style="width: 5%" class="text-center">Action</th>
+                    </tr>
+                </thead> 
+                <tbody id="orderTableBody">    
+                    <!-- JavaScript will write td items here dynamically -->      
+                </tbody>
+                <tfoot id="table_footer">
+                    <tr class="fw-bold align-middle">
+                        <td colspan="7" class="text-end">Grand Total:</td>
+                        <td class="text-end text-primary" id="grand_total_orderTableBody">MMK 0.00</td>
+                        <td></td>
+                    </tr>
+                </tfoot>               
+            </table>   
+        </div>
+        <div class="d-flex justify-content-center mt-3">
+            <nav aria-label="Page navigation">
+                <ul id="orderTablePagination" class="pagination pagination-sm mb-0">
+                    <!-- JavaScript will write items here dynamically -->
+                </ul>
+            </nav>
+        </div>
+    </div>
+
+{% endblock %}
+{% block scripts %}
+
+<script>
+
+    /**
+     * 1. Monitors all 6 filtering fields to toggle the addtolist Button's disabled state.
+     * Prevents empty submissions that trigger backend 404/500 routing anomalies.
+     */
+    let po_idCheck = null; // Initialize a variable to store the Purchase Order ID
+
+    function checkSearchFieldsValidation() {
+
+        const addTolistBtn = document.getElementById('addTolistBtn');
+        const searchBtn = document.getElementById('searchBtn');
+        const createOrderBtn = document.getElementById('createOrderBtn');
+        const saveOrderBtn = document.getElementById('saveOrderBtn');
+
+        // 1. Fetch values from all text inputs elements safely
+        const codeVal       = document.getElementById('search_code')    ? document.getElementById('search_code').value.trim()  : '';
+        const nameVal       = document.getElementById('search_name')    ? document.getElementById('search_name').value.trim()  : '';
+        const modelVal      = document.getElementById('search_model')   ? document.getElementById('search_model').value.trim() : '';
+        const merchantVal   = document.getElementById('merchant')       ? document.getElementById('merchant').value.trim()     : '';
+
+        const searchTableBody = document.getElementById('searchTableBody');
+        const hasRowsSearch = searchTableBody && searchTableBody.rows.length > 0;
+
+        const orderTableBody = document.getElementById('orderTableBody');
+        const hasRowsOrder = orderTableBody && orderTableBody.rows.length > 0;
+    
+        // 2. Determine if every single filtering input element is completely blank
+        const isAllFieldsEmpty = (!codeVal && !nameVal && !modelVal);
+        const isMerchantFieldEmpty = (!merchantVal);
+
+        // 3. Dynamically manage HTML properties and core structural classes
+        if (isAllFieldsEmpty) {
+            searchBtn.disabled = true;                   // Hard blocks all browser click interaction pathways
+            searchBtn.classList.add('disabled');      
+        } else {
+            searchBtn.disabled = false;                  // Activates the node engine element properties
+            searchBtn.classList.remove('disabled');      // Fully restores interactive colors
+        }
+
+        // 4. createOrderBtn is only enabled if the merchant field has a value, preventing accidental order creation without a merchant.
+        if(createOrderBtn) {
+            if (isMerchantFieldEmpty) {
+                createOrderBtn.disabled = true;                // Hard blocks all browser click interaction pathways
+                createOrderBtn.classList.add('disabled');      // Formally injects Bootstrap's muted disabled opacity look
+            } else {
+                createOrderBtn.disabled = false;               // Activates the node engine element properties
+                createOrderBtn.classList.remove('disabled');   // Fully restores interactive colors
+            }
+        }
+        
+        if (po_idCheck !== null && hasRowsSearch) {
+            addTolistBtn.disabled = false;                // Activates the node engine element properties
+            addTolistBtn.classList.remove('disabled');   // Fully restores interactive colors
+        } else {
+            addTolistBtn.disabled = true;                // Hard blocks all browser click interaction pathways
+            addTolistBtn.classList.add('disabled');      // Formally injects Bootstrap's muted disabled opacity look
+        }
+
+        if (po_idCheck !== null && hasRowsOrder) {
+            saveOrderBtn.disabled = false;                // Activates the node engine element properties
+            saveOrderBtn.classList.remove('disabled');   // Fully restores interactive colors
+        } else {
+            saveOrderBtn.disabled = true;                // Hard blocks all browser click interaction pathways
+            saveOrderBtn.classList.add('disabled');      // Formally injects Bootstrap's muted disabled opacity look
+        }
+    }
+
+    /**
+     * DYNAMIC CONTROLLER UTILITY
+     * Manages the visibility of the "Remove All" button and re-indexes the table 
+     * rows from 1 upwards whenever an item is added or deleted.
+     */
+    function updateTableStateAndIndices(targetTableBodyId) {
+        const tableBody = document.getElementById(targetTableBodyId);
+        const removeAllBtn = document.getElementById('removeAllBtn');
+        const importExcelBtn = document.getElementById('importExcelBtn')
+        if (!tableBody || !removeAllBtn) return;
+
+        // 1. Gather all current active table row nodes
+        const rows = tableBody.querySelectorAll('tr');
+
+        // 2. TOGGLE BUTTON VISIBILITY: Show the "Remove All" button only if rows exist and search table is the target
+        if(targetTableBodyId === 'searchTableBody') {
+            if (rows.length > 0) {
+                removeAllBtn.style.display = 'inline-block';
+                importExcelBtn.classList.add('disabled');
+                importExcelBtn.style.display = 'none';
+            } else {
+                removeAllBtn.style.display = 'none';
+                importExcelBtn.classList.remove('disabled')
+                importExcelBtn.style.display = 'inline-block';
+            }
+        }
+
+        // 3. AUTOMATIC SEQUENTIAL RE-INDEXING (The 'No' Column Repair Engine)
+        // Runs through all rows and fixes the index numbering so deleting item #2 
+        // forces item #3 to instantly become item #2, keeping counts pristine!
+        rows.forEach((row, index) => {
+            const noCell = row.querySelector('td:first-child');
+            if (noCell) {
+                noCell.innerText = index + 1;
+            }
+        });
+    }
+
+    /**
+     * 2. SEPARATE ACTION: Deletes a single item row from view grid
+     * @param {HTMLElement} buttonElement - The specific cross button that was clicked
+     */
+    function removeSingleItem(buttonElement, targetTableBodyId) {
+        if (!buttonElement) return;
+        
+        // Traverses up the DOM layout hierarchy to locate the parent <tr> containing this button
+        const targetRow = buttonElement.closest('tr');
+        
+        if (targetRow) {
+            // Drop the targeted element row out of the DOM tree structure
+            targetRow.remove();
+            
+            // Re-calculate page sequential indexes and update the "Remove All" button layout states
+            updateTableStateAndIndices(targetTableBodyId);
+            checkSearchFieldsValidation(); 
+        }
+    }
+
+    /**
+     * 3. SEPARATE ACTION: Wipes all element records from the table body cleanly
+     */
+    function executeRemoveAll() {
+        const searchTableBody = document.getElementById('searchTableBody');
+        if (!searchTableBody) return;
+        const searchBtn = document.getElementById('searchBtn');
+        const addTolistBtn = document.getElementById('addTolistBtn');
+        const nocreateItemTableRow = document.getElementById('nocreateItemTableRow');
+
+        // Use a clean modal warning window before executing a complete table flush
+        if (typeof showModal === "function") {
+            showModal(
+                "warning", 
+                "Are you completely sure you want to clear all items currently listed in this staging table?", 
+                null, 
+                function() {
+                    // If the user clicks OK on the confirmation, empty the layout body container
+                    searchTableBody.innerHTML = '';
+
+                    // Recalculate states to cleanly hide the "Remove All" button
+                    updateTableStateAndIndices('searchTableBody');
+                    searchBtn.disabled = true;                // Hard blocks all browser click interaction pathways
+                    searchBtn.classList.add('disabled');
+                    addTolistBtn.disabled = true;
+                    addTolistBtn.classList.add('disabled');
+                    document.getElementById('search_code').value = '';
+                    document.getElementById('search_name').value = '';  
+                    document.getElementById('search_model').value = '';
+                    document.getElementById('grand_total_searchTableBody').innerHTML = 'MMK 0.00';
+                }
+            );
+        } else {
+            // Fallback native dialog channel if custom overlays are missing
+            if (confirm("Clear all items out of the staging list?")) {
+                searchTableBody.innerHTML = '';
+                updateTableStateAndIndices('searchTableBody');
+                searchBtn.disabled = true;                // Hard blocks all browser click interaction pathways
+                searchBtn.classList.add('disabled');
+                addTolistBtn.disabled = true;
+                addTolistBtn.classList.add('disabled');
+                document.getElementById('search_code').value = '';
+                document.getElementById('search_name').value = '';  
+                document.getElementById('search_model').value = '';
+                document.getElementById('grand_total_searchTableBody').innerHTML = 'MMK 0.00';
+            }
+        }
+    }
+
+    /**
+     * Captures merchant entry inputs parameters, triggers a secure background network 
+     * URL GET fetch, and rewrites the header workspace container card cleanly upon database success.
+     */
+    function executeCreateOrderID() {
+        // 1. Locate target input element and parent div containers safely
+        const merchantInput = document.querySelector("#orderDetailDiv #merchant") || document.getElementById('merchant');
+        const targetDiv     = document.getElementById('orderDetailDiv');
+        const createBtn     = document.getElementById('createOrderBtn');
+
+        if (!merchantInput || !targetDiv) return; // Safeguard guard clause
+
+        const merchantVal = merchantInput.value.trim();
+
+        // 2. DATA VALIDATION INTEGRATION
+        // Blocks empty submissions from leaving the user screen layout environment
+        if (merchantVal.length === 0) {
+            if (typeof showModal === "function") {
+                showModal("error", "Validation Error: Please fill in the Merchant Name before generating a Purchase Order.");
+            } else {
+                alert("Please fill in the Merchant Name.");
+            }
+            merchantInput.focus();
+            checkSearchFieldsValidation(); // Re-evaluate button states after adding items
+            return; // Halts the function execution pipeline immediately
+        }
+
+        // Momentarily lock the interactive button interface during processing to prevent double-clicks
+        if (createBtn) {
+            createBtn.disabled = true;
+            createBtn.innerText = "Processing...⏳";
+        }
+
+        // =========================================================================
+        // 3. COMPILE THE URL STRING WITH QUERY PARAMETERS
+        // =========================================================================
+        // URLSearchParams automatically handles spacing and special character encodings (e.g., 'Main Supplier' -> 'Main%20Supplier')
+        const urlParams = new URLSearchParams();
+        urlParams.append("merchant", merchantVal);
+
+        // Append the compiled query parameters directly onto target route location link
+        const targetRoutingUrl = `/create_POID?${urlParams.toString()}`;
+
+        // Define options configuration matching global dynamic fetch gateway syntax requirements
+        // Shifting to a lightweight GET layout because data travels entirely inside the URL link line
+        const requestOptions = {
+            method: "GET"
+        };
+
+        // 4. DISPATCH REQUEST OVER UNIVERSAL INTERFACE ROUTE ENGINE
+        sendServerRequest(
+            targetRoutingUrl, 
+            requestOptions,
+            // Success Callback Route: Executes Flask endpoint returns clean JSON data
+            function(data) {
+                if (data.status === "success" && data.po_id) {
+                    // =========================================================================
+                    // 5. REWRITE DIV AND WIPE OUT UNNECESSARY INTERACTION NODES
+                    // =========================================================================
+                    // Completely overwrites inner HTML markup, isolating just a single h5 text block
+                    targetDiv.innerHTML = `
+                        <h5 id="po_id" class="my-auto text-primary fw-bold">
+                            Purchase Order ID : ${data.po_id}
+                        </h5>
+                    `;
+
+                    po_idCheck = data.po_id; // Store the Purchase Order ID for future reference
+                    checkSearchFieldsValidation(); // Re-evaluate button states after adding items
+
+                } else if (data.status === "error") {
+                    // Restore button states if structural response flags fail validations
+                    if (createBtn) {
+                        createBtn.disabled = false;
+                        createBtn.innerText = "Create Order";
+                    }
+                    if (typeof showModal === "function") {
+                        showModal("error", data.message || "Failed to initialize standard Purchase Order parameters.");
+                    }
+                    checkSearchFieldsValidation(); // Re-evaluate button states after adding items
+                }
+                
+                else {
+                    // Restore button states if structural response flags fail validations
+                    if (createBtn) {
+                        createBtn.disabled = false;
+                        createBtn.innerText = "Create Order";
+                    }
+                    if (typeof showModal === "function") {
+                        showModal("error", data.message || "Failed to initialize standard Purchase Order parameters.");
+                    }
+                    checkSearchFieldsValidation(); // Re-evaluate button states after adding items
+                }
+            }
+        );
+    }
+
+    // ==========================================
+    // 2. pagination element rendering
+    // ==========================================
+    /**
+     * Renders the HTML button layout controls dynamically underneath the data grids.
+     * @param {object} metadata - Holds pagination counts (current_page, total_pages, total_records)
+     */
+    function renderPaginationControls(metadata, targetPaginationElementId) {
+        const paginationUl = document.getElementById(targetPaginationElementId);
+        if (!paginationUl) return;
+
+        // --- CONDITION LOOK: Hide pagination entirely if total records are less than or equal to 10 ---
+        if (!metadata || metadata.total_pages <= 1) {
+            paginationUl.innerHTML = ''; // Clears container layout out of sight
+            return;
+        }
+
+        let htmlMarkup = '';
+
+        // 1. Build the "Previous" directional control element button
+        const isPrevDisabled = metadata.current_page === 1;
+        htmlMarkup += `
+            <li class="page-item ${isPrevDisabled ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="changeTablePage(${metadata.current_page - 1}, event)" aria-label="Previous">
+                    <span aria-hidden="true">&laquo;</span>
+                </a>
+            </li>
+        `;
+
+        // 2. Loop through and draw sequential numeric page numbers
+        for (let i = 1; i <= metadata.total_pages; i++) {
+            const isActive = metadata.current_page === i;
+            htmlMarkup += `
+                <li class="page-item ${isActive ? 'active' : ''}">
+                    <a class="page-link" href="#" onclick="changeTablePage(${i}, event)">${i}</a>
+                </li>
+            `;
+        }
+
+        // 3. Build the "Next" directional control element button
+        const isNextDisabled = metadata.current_page === metadata.total_pages;
+        htmlMarkup += `
+            <li class="page-item ${isNextDisabled ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="changeTablePage(${metadata.current_page + 1}, event)" aria-label="Next">
+                    <span aria-hidden="true">&raquo;</span>
+                </a>
+            </li>
+        `;
+
+        paginationUl.innerHTML = htmlMarkup;
+    }
+
+    /** Function called when a user selects a page index button link element */
+    function changeTablePage(targetPageNumber, event) {
+        if (event) event.preventDefault();
+        // Fire search routine passing along targeted page tracking arguments
+        executeInventorySearch(targetPageNumber);
+    }
+
+    // ==========================================
+    // 3. DYNAMIC MULTI-FIELD SEARCH REFRESH
+    // ==========================================
+
+    function executeInventorySearch(pageNumber = 1) {
+    currentActivePage = pageNumber;
+
+    // Collect whatever input data values currently exist inside search elements
+    const codeVal       = document.getElementById('search_code')    ? document.getElementById('search_code').value.trim()  : '';
+    const nameVal       = document.getElementById('search_name')    ? document.getElementById('search_name').value.trim()  : '';
+    const modelVal      = document.getElementById('search_model')   ? document.getElementById('search_model').value.trim() : '';
+
+    if (!codeVal && !nameVal && !modelVal) {
+        showModal("error", "Please enter at least one search criteria (Code, Name, or Model) to perform a search.");
+        return;
+    }
+    
+    const urlParams = new URLSearchParams();
+    urlParams.append('page', currentActivePage); // Append targeted limit mapping page key
+    
+    if (codeVal)    urlParams.append('code', codeVal);
+    if (nameVal)    urlParams.append('name', nameVal);
+    if (modelVal)   urlParams.append('model', modelVal);
+
+    const targetUrl = `/search_inventory/?${urlParams.toString()}`;
+
+    // Dispatch the network fetch request package over dynamic universal gateway
+    sendServerRequest(targetUrl, function(data) {
+        if (data.status === "success") {
+            // A. Update table row contents matching current 10-row dataset layout array
+            renderDynamicTableRows(data.inventory, 'searchTableBody');
+            
+            // B. Recalculate and render the pagination controls underneath
+            renderPaginationControls(data.pagination, 'searchTablePagination');
+
+            // C. Show Reset Table UI controls button if a user actually searched criteria text inputs
+            if (data.inventory.length > 0) {
+                updateTableStateAndIndices('searchTableBody');
+            }
+
+            document.getElementById('searchBtn').disabled = true;                // Hard blocks all browser click interaction pathways
+            document.getElementById('searchBtn').classList.add('disabled');
+            document.getElementById('search_code').value = '';
+            document.getElementById('search_name').value = '';
+            document.getElementById('search_model').value = '';
+
+        } else {
+            showModal("error", data.message || "Query indexing operation failed.");
+            }
+        });
+    }
+
+    // ==========================================
+    // 6. DYNAMIC TABLE GENERATION BUILDER
+    // ==========================================
+    function renderDynamicTableRows(inventoryArray, targetTableBodyId) {
+        const tbody = document.getElementById(targetTableBodyId);
+        if (!tbody) return;
+
+        const hasRows = tbody && tbody.rows.length > 0;
+
+        if (targetTableBodyId === 'searchTableBody') {
+            tbody.innerHTML = ''; // Clear existing rows for search table
+        }
+
+        // Choose your editable table body ID here (e.g., 'cart_tbody')
+        const isEditable = (targetTableBodyId === 'searchTableBody');
+
+        // Handle empty results display state tracking constraints
+        if (!inventoryArray || inventoryArray.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="9" class="text-center text-muted py-4 fw-medium">
+                        No Inventory records match your active filtering parameters.
+                    </td>
+                </tr>`;
+            checkSearchFieldsValidation(); // Re-evaluate button states after adding items
+            return;
+        }
+
+        // Process elements one by one from the array stream
+        inventoryArray.forEach((inventory, index) => {
+            const row = document.createElement('tr');
+            row.className = "align-middle";
+            
+            // Ensure price is a valid number for calculations
+            const price = parseFloat(inventory.price) || 0;
+            
+            // Injecting the data rows into layout slots using template literal string values
+            row.innerHTML = `
+                <td class="text-center" style="width: 3%;">${index + 1}</td>
+                <td>${inventory.code || ''}</td>
+                <td>${inventory.name || ''}</td>
+                <td>${inventory.model || ''}</td>
+                <td class="text-end fw-semibold">
+                    MMK ${price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                </td>
+                <td>${inventory.quantity || '0'}</td>
+                <td>
+                    ${isEditable ? `
+                        <input type="number" 
+                            class="form-control form-control-sm order-quantity" 
+                            min="1" 
+                            value="1" 
+                            id="order_quantity_${targetTableBodyId}_${index}" 
+                            name="order_quantity"
+                            data-price="${price}"
+                            oninput="updateRowTotal(this, '${targetTableBodyId}')">
+                    ` : `
+                        <!-- Normal plain text cell for the secondary table -->
+                        ${inventory.orderQuantity || '0'}
+                    `}
+                </td>
+                <td class="text-end fw-semibold row-total" data-raw-total="${isEditable ? price : parseFloat(inventory.totalPrice) || 0}">
+                    ${isEditable ? `
+                        MMK ${price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                    ` : `
+                        <!-- Normal plain text cell for the secondary table -->
+                        MMK ${parseFloat(inventory.totalPrice).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'}
+                    `}
+                </td>
+                <td class="text-center">
+                    <!-- Passes targetTableBodyId explicitly down into the execution chain -->
+                    <button type="button" class="btn btn-sm btn-outline-danger border-0 py-0 px-2 fw-bold" 
+                            onclick="handleItemRemoval(this, '${targetTableBodyId}')" title="Remove Item">
+                        &times;
+                    </button>
+                </td>
+            `;
+
+            tbody.appendChild(row);
+            // Run this once at the start to set the initial grand total
+            updateGrandTotal(targetTableBodyId);
+            checkSearchFieldsValidation(); // Re-evaluate button states after adding items
+            updateTableStateAndIndices(targetTableBodyId);
+        });
+    }
+
+    // function to update the total price for a row when the order quantity changes
+    function updateRowTotal(inputElement,targetTableBodyId) {
+        const price = parseFloat(inputElement.getAttribute('data-price')) || 0;
+        const quantity = parseFloat(inputElement.value) || 0;
+        const total = price * quantity;
+        
+        // Find the total cell in the same row
+        const row = inputElement.closest('tr');
+        const totalCell = row.querySelector('.row-total');
+        
+        // Update the display
+        totalCell.setAttribute('data-raw-total', total);
+        totalCell.textContent = `MMK ${total.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        
+        // Recalculate grand total
+        updateGrandTotal(targetTableBodyId);
+    }
+
+    // function to update the grand total for all rows
+    function updateGrandTotal(targetBodyId) {
+        let grandTotal = 0;
+        
+        // Find the specific container by its ID string
+        const specificTbody = document.getElementById(targetBodyId);
+        if (!specificTbody) return;
+        
+        // Only query .row-total elements inside this specific tbody
+        const totalCells = specificTbody.querySelectorAll('.row-total');
+        
+        totalCells.forEach(cell => {
+            const value = parseFloat(cell.getAttribute('data-raw-total')) || 0;
+            grandTotal += value;
+        });
+        
+        // Looks for a display element bound to this specific target body naming scheme
+        const grandTotalDisplay = document.getElementById(`grand_total_${targetBodyId}`);
+        if (grandTotalDisplay) {
+            grandTotalDisplay.textContent = `MMK ${grandTotal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        }
+    }
+
+    // delete a single item and update the grand total immediately
+    function handleItemRemoval(buttonElement, targetTableBodyId) {
+        // 1. Call existing global removal logic
+        if (typeof removeSingleItem === "function") {
+            removeSingleItem(buttonElement, targetTableBodyId);
+        } else {
+            buttonElement.closest('tr').remove();
+        }
+        
+        // 2. Refresh total sum immediately
+        updateGrandTotal(targetTableBodyId);
+    }
+
+    // add to list button click handler
+    function executeAddToList() {
+        const tbody = document.getElementById('searchTableBody');
+        if (!tbody) return;
+
+        const rows = tbody.querySelectorAll('tr');
+
+        // --- SAFETY CHECK A: Ensure the staging table isn't completely empty ---
+        if (rows.length === 0) {
+            if (typeof showModal === "function") {
+                showModal("error", "Submission Blocked: Your Inventory table is empty. Please add at least one inventory item before adding.");
+            } else {
+                alert("Your table is empty.");
+            }
+            return;
+        }
+
+        // =========================================================================
+        // Safety CHECK B: HALT OPERATIONS IF item code duplicate
+        // =========================================================================
+        // 1. Get second column cells (index 1) from the search table
+        const searchCells = document.querySelectorAll('#searchTableBody td:nth-child(2)');
+
+        // 2. Store unique values from the search table into a Set
+        const searchValues = new Set(
+        Array.from(searchCells).map(td => td.textContent.trim())
+        );
+
+        // 3. Get second column cells from the order table
+        const orderCells = document.querySelectorAll('#orderTableBody td:nth-child(2)');
+
+        // 4. Filter out the duplicates found in the order table
+        // Array to collect duplicate text values
+        const duplicateValues = [];
+
+        for (const td of orderCells) {
+            const text = td.textContent.trim();
+            
+            if (searchValues.has(text)) {
+            
+            // Save the duplicate value to your array
+            duplicateValues.push(text);
+            }
+        }
+
+        // Check if we collected any duplicates
+        if (duplicateValues.length > 0) {
+            // 3. Alert the user with the actual duplicate values found
+            if (typeof showModal === "function") {
+                showModal("error", `Duplicate Item Code(s) Detected: ${duplicateValues.join(', ')}. Please remove duplicates before adding to the order list.`);
+            } else {
+                alert(`Duplicate Item Code(s) Detected: ${duplicateValues.join(', ')}. Please remove duplicates before adding to the order list.`);
+            }
+            
+            // 4. STOP the entire function execution to prevent adding duplicates
+            return; 
+        }
+
+        // Data storage containers for our payload and duplicate tracking loops
+        const inventoryItemsPayload = [];
+
+        // =========================================================================
+        // 2. PARSE AND EXTRACT ROW-BY-ROW MATRIX VALUES FROM HTML COMPONENT
+        // =========================================================================
+        rows.forEach((row, index) => {
+            
+            // Read individual cell parameters cleanly out of the DOM table tree layout
+            const cells = row.querySelectorAll('td');
+            if (cells.length < 8) return; // Skip broken rows safely
+
+            const itemCode  = cells[1].innerText.trim();
+            const itemName  = cells[2].innerText.trim();
+            const itemModel = cells[3].innerText.trim();
+            
+            // Extract raw unformatted numeric float numbers out of the currency cell string
+            // Removes 'MMK' and ',' strings completely before compilation
+            const rawPriceText = cells[4].innerText.replace('MMK', '').replace(/,/g, '').trim();
+            const itemPrice = parseFloat(rawPriceText) || 0.00;
+            const stockQuantity = parseInt(cells[5].innerText.trim()) || 0;
+            const orderQuantityInput = cells[6].querySelector('input');
+            const orderQuantity = parseInt(orderQuantityInput.value) || 0;
+            const totalPrice = itemPrice * orderQuantity;
+
+            // Package the row into a standardized dataset transfer dictionary object
+            inventoryItemsPayload.push({
+                "code": itemCode,
+                "name": itemName,
+                "model": itemModel,
+                "price": itemPrice,
+                "quantity": stockQuantity,
+                "orderQuantity": orderQuantity,
+                "totalPrice": totalPrice
+            });
+        });
+
+        renderDynamicTableRows(inventoryItemsPayload, 'orderTableBody');
+
+        // clear tbody of search table
+        tbody.innerHTML = '';
+        document.getElementById('grand_total_searchTableBody').innerHTML = 'MMK 0.00';
+
+    }
+
+    // function to save Order and insert items form the orderTableBody to database
+    function executeSaveOrder() {
+
+        const tbody = document.getElementById('orderTableBody');
+        if (!tbody) return;
+
+        const rows = tbody.querySelectorAll('tr');
+
+        // --- SAFETY CHECK A: Ensure the staging table isn't completely empty ---
+        if (rows.length === 0) {
+            if (typeof showModal === "function") {
+                showModal("error", "Submission Blocked: Your Order table is empty. Please add at least one inventory item before saving.");
+            } else {
+                alert("Your table is empty.");
+            }
+            return;
+        }
+
+        // --- SAFETY CHECK B: Ensure po_id exist ---
+        if (po_idCheck === null) {
+            if (typeof showModal === "function") {
+                showModal("error", "Submission Blocked: Purchase Order ID is empty. Please create Order ID first before saving.");
+            } else {
+                alert("Purchase Order ID is empty");
+            }
+            return;
+        }
+
+        // Data storage containers for our payload and duplicate tracking loops
+        const inventoryItemsPayload = [];
+        const codeTrackerMap = {}; // Tracks { codeValue: [rowNumber1, rowNumber2] }
+        const duplicateRowNumbers = new Set(); // Stores exact row counts where collisions happen
+
+        // =========================================================================
+        // 2. PARSE AND EXTRACT ROW-BY-ROW MATRIX VALUES FROM HTML COMPONENT
+        // =========================================================================
+        rows.forEach((row, index) => {
+            const currentNo = index + 1; // Real UI sequential column index number
+            
+            // Read individual cell parameters cleanly out of the DOM table tree layout
+            const cells = row.querySelectorAll('td');
+            if (cells.length < 8) return; // Skip broken rows safely
+
+            const itemCode  = cells[1].innerText.trim();
+            const qty_bought  = cells[6].innerText.trim();
+            const total_price = cells[7].getAttribute('data-raw-total') || '0.00';
+
+            // --- DUPLICATE SECURITY EVALUATION ---
+            if (codeTrackerMap[itemCode]) {
+                // Duplicate found! Stash the historical initial row and the current row index counts
+                codeTrackerMap[itemCode].forEach(oldNo => duplicateRowNumbers.add(oldNo));
+                duplicateRowNumbers.add(currentNo);
+            } else {
+                codeTrackerMap[itemCode] = [];
+            }
+            codeTrackerMap[itemCode].push(currentNo);
+
+            // Package the row into a standardized dataset transfer dictionary object
+            inventoryItemsPayload.push({
+                "po_id": po_idCheck,
+                "code": itemCode,
+                "qty_bought": qty_bought,
+                "total_price": total_price
+            });
+        });
+
+        // =========================================================================
+        // 3. FIREWALL CHECK C: HALT OPERATIONS IF CODES COLLIDE
+        // =========================================================================
+        if (duplicateRowNumbers.size > 0) {
+            // Convert row numbers set to a clean sorted string array text layout: "2, 5"
+            const sortedDuplicates = Array.from(duplicateRowNumbers).sort((a, b) => a - b).join(', ');
+            
+            const duplicateWarningMessage = `There were duplicate code values at these columns: column Numbers: ${sortedDuplicates}`;
+            
+            if (typeof showModal === "function") {
+                showModal("error", duplicateWarningMessage);
+            } else {
+                alert(duplicateWarningMessage);
+            }
+            return; // Hard locks execution before network transfer payload can leak out
+        }
+
+        // =========================================================================
+        // 4. DISPATCH BULK PAYLOAD PACKAGE OVER UNIVERSAL GATEWAY
+        // =========================================================================
+        // Convert our structured inventory objects array matrix into a unified JSON string payload wrapper
+        const requestOptions = {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                "items": inventoryItemsPayload
+            })
+        };
+
+        // Pull destination endpoint string link from form action attribute markup safely
+        let targetRoutingUrl = "/save_POID"; // Secure fallback default string blueprint
+
+        // Trigger transmission using your verified type-safe global gateway script function
+        sendServerRequest(
+            targetRoutingUrl,
+            requestOptions,
+            // Success Callback Handler
+            function (data) {
+                if (data.status === "success") {
+                    if (typeof showModal === "function") {
+                    showModal("success", data.message, null, function () {
+                        tbody.innerHTML = ''; // Clear rows completely upon execution success
+                        document.getElementById('grand_total_orderTableBody').innerHTML = 'MMK 0.00'; // Reset grand total display
+                        if (data.redirect) window.location.href = data.redirect;
+                        });
+                    }
+                }
+                if (data.status === "error") {
+                    if (typeof showModal === "function") {
+                        showModal("error", data.message || "Failed to save the Purchase Order. Please try again.");
+                    }
+                    if (data.redirect) window.location.href = data.redirect;
+                }
+            }
+        );
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Define both active form types operating on the workspace page
+        const inputIdsList = ['search_code', 'search_name', 'search_model', 'merchant'];
+        inputIdsList.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('input', checkSearchFieldsValidation);
+                el.addEventListener('change', checkSearchFieldsValidation);
+            }
+        });
+        checkSearchFieldsValidation();
+    });
+
+</script>
+
+{% endblock %}
