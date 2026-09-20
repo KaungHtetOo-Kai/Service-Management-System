@@ -98,8 +98,6 @@ Service_Management_System/
     └── repair_ticket*.html
 ```
 
-The archive also includes a `flask_session/` directory with session files. Treat these as runtime data rather than source files; do not commit active session contents.
-
 ## Data model
 
 The SQLite database file is `ServiceManagementSystem.db`. Table names referenced by the application include:
